@@ -245,6 +245,7 @@ tr:hover td{background:#f7faff}
     <div class="ind-card" id="ifuente"></div>
   </div>
   <div class="ind-card" id="ijorn"></div>
+  <div class="ind-card" style="margin-top:12px" id="ival"></div>
 </div>
 </div>
 
@@ -356,7 +357,7 @@ function normT(data,slotId){
     o.exp=String(exp);
     o.tip=String(gf(r,'tipo','Tipo','TIPO')||'');
     o.desc=String(nom);
-    o.resp=String(gf(r,'responsable','Responsable','RESPONSABLE')||'');
+    o.resp=String(gf(r,'responsable','Responsable','RESPONSABLE','abogado responsable','Abogado Responsable')||'');
     o.sup=String(gf(r,'supervisor','Supervisor','SUPERVISOR')||'');
     o.contraparte=String(gf(r,'contraparte','Contraparte','CONTRAPARTE')||'');
     o.materia=String(gf(r,'materia','Materia','MATERIA')||'');
@@ -385,7 +386,7 @@ function normN(data,slotId){
     o.exp=String(exp);
     o.tip=String(gf(r,'TIPO','tipo','Tipo','tipo_escrito','TIPO_ESCRITO')||'');
     o.desc=String(nom);
-    o.resp=String(gf(r,'RESPONSABLE DEL PROCESO','responsable del proceso','responsable','Responsable','RESPONSABLE')||'');
+    o.resp=String(gf(r,'RESPONSABLE DEL PROCESO','responsable del proceso','responsable','Responsable','RESPONSABLE','abogado responsable','Abogado Responsable')||'');
     o.sup=String(gf(r,'SUPERVISOR','supervisor','Supervisor')||'');
     o.contraparte=String(gf(r,'CONTRAPARTE','contraparte','Contraparte','DEMANDANTE','demandante')||'');
     o.materia=String(gf(r,'MATERIA','materia','Materia','materia_proceso','MATERIA_PROCESO')||'');
@@ -783,9 +784,12 @@ function dlXLSXSlot(fecha,slotId){
 
 // ---- INDICADORES ----
 function renderInd(){
+  // Only count rows[] (active) + cerrada jornadas (to avoid double counting saved-but-still-active)
   var all=rows.slice();
   Object.values(hist).forEach(function(j){
-    ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s])all=all.concat(j.slots[s].recs);});
+    if(j.cerrada){
+      ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s])all=all.concat(j.slots[s].recs);});
+    }
   });
   var t=all.length;
   var ok=all.filter(function(r){return r.est==='Revisado';}).length;
@@ -919,6 +923,53 @@ function renderInd(){
     jh+='</tbody></table>';
   }
   document.getElementById('ijorn').innerHTML=jh;
+
+  // ── Validaciones summary ──
+  var valDefs=[
+    {k:'vs',l:'Val. Sent/Pago'},
+    {k:'ve',l:'Val. Estados'},
+    {k:'vt',l:'Val. Tareas'}
+  ];
+  var vStates=[
+    {v:'correcto', l:'✅ Correcto',   bg:'#c6f6d5',fg:'#22543d'},
+    {v:'incompleto',l:'⚠️ Incompleto',bg:'#fefcbf',fg:'#744210'},
+    {v:'error',    l:'❌ Error',      bg:'#fed7d7',fg:'#742a2a'},
+    {v:'naplica',  l:'➖ No aplica',  bg:'#edf2f7',fg:'#718096'}
+  ];
+  var vh='<div class="ind-title">Validaciones</div>';
+  vh+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  vh+='<thead><tr style="background:var(--light)">';
+  vh+='<th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Campo</th>';
+  vStates.forEach(function(vs){
+    vh+='<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">'+vs.l+'</th>';
+  });
+  vh+='<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Sin val.</th>';
+  vh+='</tr></thead><tbody>';
+  valDefs.forEach(function(vd){
+    vh+='<tr style="border-bottom:1px solid #f0f4f8"><td style="padding:8px 10px;font-weight:500">'+vd.l+'</td>';
+    vStates.forEach(function(vs){
+      var cnt=all.filter(function(r){return r[vd.k]===vs.v;}).length;
+      vh+='<td style="padding:8px 10px;text-align:center">';
+      if(cnt>0)vh+='<span style="background:'+vs.bg+';color:'+vs.fg+';padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600">'+cnt+'</span>';
+      else vh+='<span style="color:#cbd5e0;font-size:12px">0</span>';
+      vh+='</td>';
+    });
+    var sinVal=all.filter(function(r){return !r[vd.k];}).length;
+    vh+='<td style="padding:8px 10px;text-align:center;color:var(--muted);font-size:12px">'+sinVal+'</td>';
+    vh+='</tr>';
+  });
+  // Total row
+  vh+='<tr style="background:var(--light);font-weight:600"><td style="padding:8px 10px">Total combinado</td>';
+  vStates.forEach(function(vs){
+    var cnt=all.filter(function(r){return r.vs===vs.v||r.ve===vs.v||r.vt===vs.v;}).length;
+    vh+='<td style="padding:8px 10px;text-align:center">';
+    if(cnt>0)vh+='<span style="background:'+vs.bg+';color:'+vs.fg+';padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600">'+cnt+'</span>';
+    else vh+='<span style="color:#cbd5e0">0</span>';
+    vh+='</td>';
+  });
+  vh+='<td></td></tr>';
+  vh+='</tbody></table>';
+  document.getElementById('ival').innerHTML=vh;
 }
 
 function goTab(name){
