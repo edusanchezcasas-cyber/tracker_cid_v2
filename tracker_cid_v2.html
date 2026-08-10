@@ -217,7 +217,6 @@ tr:hover td{background:#f7faff}
         <th style="min-width:160px">Contraparte<br><input class="th-filter" data-col="contraparte" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Materia<br><input class="th-filter" data-col="materia" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Relevancia<br><input class="th-filter" data-col="relevancia" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
-        <th style="min-width:180px">Bitácora<br><input class="th-filter" data-col="bitacora" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:130px">Estado rev.<br><input class="th-filter" data-col="est" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Revisado por</th><th style="min-width:140px">Validado por</th><th style="min-width:120px">Fecha rev.</th>
         <th style="min-width:130px">Val. Sent/Pago</th><th style="min-width:120px">Val. Estados</th><th style="min-width:120px">Val. Tareas</th>
@@ -268,7 +267,7 @@ var SLOT_COLORS={
   N2:{bg:'#c6f6d5',fg:'#22543d'},
   N3:{bg:'#fed7d7',fg:'#742a2a'}
 };
-var REV_OPTS=['Joselin Janampa','Alexis Castillo'];
+var REV_OPTS=['Joselin Janampa'];
 var VAL_OPTS=['Joselin Janampa','Claudia Vasquez'];
 var MYBIG='https://vinatea.mybig.com.ar/trabajos/overview/';
 
@@ -287,7 +286,7 @@ var ES={
   'Con incidencia':{bg:'#fed7d7',fg:'#742a2a',bd:'#fc8181'},
   'No corresponde':{bg:'#edf2f7',fg:'#718096',bd:'#e2e8f0'}
 };
-var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Bitácora','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
+var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
 
 function pad(n){return String(n).padStart(2,'0');}
 function now(){var d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
@@ -373,15 +372,25 @@ function normN(data,slotId){
   var sd=shortDate();
   var out=[];
   for(var i=0;i<data.length;i++){
-    var r=data[i],id=gf(r,'ID','nroproceso','NROPROCESO','id'),exp=gf(r,'EXP.','EXP','expediente','Expediente'),nom=gf(r,'NOMBRE','nombre','Nombre');
+    var r=data[i];
+    var id=gf(r,'nroproceso','NROPROCESO','ID','id');
+    var exp=gf(r,'EXP.','EXP','expediente','Expediente','EXPEDIENTE');
+    var nom=gf(r,'NOMBRE','nombre','Nombre','descripcion','DESCRIPCION');
     if(!id&&!exp)continue;
     var o=baseR();
     o.key='N|'+slotId+'|'+id+'|'+exp;o.fc2=now();o.src='Notificaciones';o.slot=slotId;
     o.fuenteLbl=SLOT_SHORT[slotId]+' '+sd;
-    o.id=String(id);o.cli=String(gf(r,'CLIENTE','cliente','Cliente')||'');
-    o.exp=String(exp);o.tip=String(gf(r,'TIPO','tipo','Tipo')||'');o.desc=String(nom);
-    o.resp=String(gf(r,'RESPONSABLE DEL PROCESO','responsable','Responsable')||'');
+    o.id=String(id);
+    o.cli=String(gf(r,'CLIENTE','cliente','Cliente')||'');
+    o.exp=String(exp);
+    o.tip=String(gf(r,'TIPO','tipo','Tipo','tipo_escrito','TIPO_ESCRITO')||'');
+    o.desc=String(nom);
+    o.resp=String(gf(r,'RESPONSABLE DEL PROCESO','responsable del proceso','responsable','Responsable','RESPONSABLE')||'');
     o.sup=String(gf(r,'SUPERVISOR','supervisor','Supervisor')||'');
+    o.contraparte=String(gf(r,'CONTRAPARTE','contraparte','Contraparte','DEMANDANTE','demandante')||'');
+    o.materia=String(gf(r,'MATERIA','materia','Materia','materia_proceso','MATERIA_PROCESO')||'');
+    o.relevancia=String(gf(r,'RELEVANCIA','relevancia','Relevancia','SENSIBLE','sensible')||'');
+    o.referencia=String(gf(r,'referencia','Referencia','REFERENCIA')||'');
     out.push(o);
   }
   return out;
@@ -455,7 +464,7 @@ function paint(){
   var data=filtrar();
   var tb=document.getElementById('tbody');
   document.getElementById('rowcount').textContent=data.length+' registro'+(data.length!==1?'s':'');
-  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="21">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="20">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
   var h='';for(var i=0;i<data.length;i++)h+=buildRow(data[i]);
   tb.innerHTML=h;
 }
@@ -496,7 +505,6 @@ function buildRow(r){
     '<td style="max-width:160px;white-space:normal;word-break:break-word">'+esc(r.contraparte||'')+'</td>'+
     '<td style="max-width:140px;white-space:normal;word-break:break-word">'+esc(r.materia||'')+'</td>'+
     '<td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:'+(r.relevancia==='SENSIBLE'?'#fed7d7':'#edf2f7')+';color:'+(r.relevancia==='SENSIBLE'?'#742a2a':'#718096')+'">'+esc(r.relevancia||'—')+'</span></td>'+
-    '<td style="max-width:200px;white-space:normal;word-break:break-word;font-size:11px">'+esc(r.bitacora||'')+'</td>'+
     '<td><select class="ssel" style="background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+';min-width:120px" data-k="'+k+'" onchange="chEst(this)">'+eopts+'</select></td>'+
     '<td>'+revSel(r.rev)+'</td>'+
     '<td>'+psel('val',r.val,VAL_OPTS)+'</td>'+
@@ -542,7 +550,7 @@ function refresh(){
   document.getElementById('hbadge').textContent=rows.length+' registros activos';
 }
 
-function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.bitacora||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
+function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
 
 function exportXLSX(data,sheetName,filename){
   var wb=XLSX.utils.book_new();
@@ -570,14 +578,18 @@ function ensureFecha(fecha){
   }
 }
 function btnGuardar(){
+  // Buscar el slot activo: cargado (guardado o no)
   var order=['E','N1','N2','N3'],target=null;
-  for(var i=0;i<order.length;i++){if(slotLoaded[order[i]]&&!slotSaved[order[i]]){target=order[i];break;}}
-  if(!target){toast('No hay reporte nuevo para guardar','warn');return;}
+  for(var i=0;i<order.length;i++){
+    if(slotLoaded[order[i]]){target=order[i];break;}
+  }
+  if(!target){toast('No hay reporte cargado para guardar','warn');return;}
   var recs=rows.filter(function(r){return r.slot===target;});
   if(!recs.length){toast('El reporte activo no tiene registros','warn');return;}
   var fecha=todayStr();
   var d=new Date();var hora=pad(d.getHours())+':'+pad(d.getMinutes());
   ensureFecha(fecha);
+  // Siempre sobreescribe/actualiza el slot en histórico
   hist[fecha].slots[target]={
     nombre:SLOT_BASE[target],slot:target,hora:hora,
     n:recs.length,src:recs[0].src,
@@ -585,7 +597,7 @@ function btnGuardar(){
   };
   slotSaved[target]=true;
   renderWF();
-  toast('💾 "'+SLOT_BASE[target]+'" guardado en '+fecha);
+  toast('💾 "'+SLOT_BASE[target]+'" actualizado en '+fecha+' — '+recs.length+' registros');
 }
 
 function btnCerrar(){
@@ -726,7 +738,7 @@ function buildSubCarpeta(fecha,slotId,rep,uid){
     '<div style="overflow:auto;max-height:260px;border-radius:8px;border:1px solid var(--border)">'+
     '<table style="width:100%;border-collapse:collapse;min-width:2000px;font-size:11px">'+
     '<thead style="background:var(--navy);position:sticky;top:0"><tr>'+
-    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Bitácora','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
+    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
       return'<th style="padding:8px 9px;font-weight:700;color:rgba(255,255,255,.85);font-size:9.5px;text-transform:uppercase;white-space:nowrap;text-align:left">'+h+'</th>';
     }).join('')+
     '</tr></thead><tbody>'+trs+'</tbody></table></div>'+pag+'</div></div>';
@@ -745,7 +757,6 @@ function buildRR(r){
     td(esc(r.resp))+td(esc(r.sup))+
     td(esc(r.contraparte||''))+td(esc(r.materia||''))+
     td('<span style="font-size:10px;padding:2px 5px;border-radius:8px;background:'+(r.relevancia==='SENSIBLE'?'#fed7d7':'#edf2f7')+';color:'+(r.relevancia==='SENSIBLE'?'#742a2a':'#718096')+'">'+esc(r.relevancia||'—')+'</span>')+
-    td(esc(r.bitacora||''))+
     td('<span style="padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+'">'+esc(r.est)+'</span>')+
     td(esc(r.rev))+td(esc(r.val))+td(esc(r.frev))+
     td(vb(r.vs))+td(vb(r.ve))+td(vb(r.vt))+td(esc(r.ov))+
@@ -776,50 +787,137 @@ function renderInd(){
   Object.values(hist).forEach(function(j){
     ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s])all=all.concat(j.slots[s].recs);});
   });
-  var t=all.length,ok=all.filter(function(r){return r.est==='Revisado';}).length;
+  var t=all.length;
+  var ok=all.filter(function(r){return r.est==='Revisado';}).length;
   var pen=all.filter(function(r){return r.est==='Pendiente';}).length;
-  var obs=all.filter(function(r){return r.est==='Con incidencia'||r.est==='No corresponde';}).length;
+  var rev=all.filter(function(r){return r.est==='En revisión';}).length;
+  var inc=all.filter(function(r){return r.est==='Con incidencia';}).length;
+  var nco=all.filter(function(r){return r.est==='No corresponde';}).length;
   var en=all.filter(function(r){return r.src==='Escritos';}).length;
   var nn=all.filter(function(r){return r.src==='Notificaciones';}).length;
+  var sens=all.filter(function(r){return r.relevancia==='SENSIBLE';}).length;
+  var pct=t?Math.round(ok/t*100):0;
+
+  // KPIs
   var kd=[
     {l:'Total',v:t,c:'#1a1f2e'},{l:'Revisados',v:ok,c:'#38a169'},
-    {l:'Pendientes',v:pen,c:'#d69e2e'},{l:'Observados',v:obs,c:'#e53e3e'},
+    {l:'Pendientes',v:pen,c:'#d69e2e'},{l:'En revisión',v:rev,c:'#4299e1'},
+    {l:'Incidencia',v:inc,c:'#e53e3e'},{l:'No corresponde',v:nco,c:'#718096'},
     {l:'Escritos',v:en,c:'#805ad5'},{l:'Notificaciones',v:nn,c:'#2b9fd4'},
-    {l:'% Avance',v:t?Math.round(ok/t*100)+'%':'0%',c:'#6b46c1'}
+    {l:'Sensibles',v:sens,c:'#e53e3e'},{l:'% Avance',v:pct+'%',c:'#6b46c1'}
   ];
-  document.getElementById('ikpis').innerHTML=kd.map(function(k){return'<div class="ks" style="border-top-color:'+k.c+'"><div class="kl">'+k.l+'</div><div class="kv" style="color:'+k.c+'">'+k.v+'</div></div>';}).join('');
-  document.getElementById('isems').innerHTML=[{c:'#38a169',l:'Revisados',v:ok},{c:'#d69e2e',l:'Pendientes',v:pen},{c:'#e53e3e',l:'Observados',v:obs},{c:'#805ad5',l:'Escritos',v:en},{c:'#2b9fd4',l:'Notificaciones',v:nn}].map(function(x){return'<div class="sem"><div class="sdot" style="background:'+x.c+'"></div><b>'+x.l+'</b>&nbsp;<span style="color:var(--muted)">'+x.v+'</span></div>';}).join('');
-  var cm={};all.forEach(function(r){if(!r.cli)return;cm[r.cli]=(cm[r.cli]||0)+1;});
-  var top=Object.entries(cm).sort(function(a,b){return b[1]-a[1];}).slice(0,10),mx=top.length?top[0][1]:1;
-  var ch='<div class="ind-title">Top clientes</div>';
-  if(!top.length)ch+='<p style="color:var(--muted);font-size:12.5px">Sin datos.</p>';
-  else top.forEach(function(e,i){ch+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--muted);min-width:16px">'+(i+1)+'</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e[0])+'</span><div class="bw"><div class="bf" style="background:#1a1f2e;width:'+Math.round(e[1]/mx*100)+'%"></div></div><span style="font-size:11px;color:var(--muted);min-width:22px;text-align:right">'+e[1]+'</span></div>';});
-  document.getElementById('icli').innerHTML=ch;
+  document.getElementById('ikpis').innerHTML=kd.map(function(k){
+    return'<div class="ks" style="border-top-color:'+k.c+'"><div class="kl">'+k.l+'</div><div class="kv" style="color:'+k.c+'">'+k.v+'</div></div>';
+  }).join('');
+
+  // Barra progreso
+  var progHtml='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;background:var(--surface);padding:14px 18px;border-radius:10px;border:1px solid var(--border)">';
+  progHtml+='<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:6px"><span style="font-weight:600;color:var(--navy)">Avance global</span><span style="color:#38a169;font-weight:600">'+pct+'%</span></div>';
+  progHtml+='<div style="height:8px;border-radius:4px;background:#edf2f7"><div style="height:100%;border-radius:4px;background:#38a169;width:'+pct+'%;transition:.4s"></div></div></div>';
+  progHtml+='<div style="display:flex;gap:14px;flex-shrink:0">';
+  [{l:'Escritos',v:en,c:'#805ad5'},{l:'Notif.',v:nn,c:'#2b9fd4'}].forEach(function(x){
+    progHtml+='<div style="text-align:center"><div style="font-size:1.4rem;font-weight:600;color:'+x.c+'">'+x.v+'</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">'+x.l+'</div></div>';
+  });
+  progHtml+='</div></div>';
+  document.getElementById('isems').innerHTML=progHtml;
+
+  // Gráfico de barras estados
+  var estados=[
+    {l:'Revisado',v:ok,c:'#38a169'},
+    {l:'Pendiente',v:pen,c:'#d69e2e'},
+    {l:'En revisión',v:rev,c:'#4299e1'},
+    {l:'Incidencia',v:inc,c:'#e53e3e'},
+    {l:'No corresponde',v:nco,c:'#a0aec0'}
+  ];
+  var mxE=Math.max.apply(null,estados.map(function(e){return e.v;}))||1;
+  var svgH=160,svgW=440,barW=54,gap=18,padL=32,padB=30;
+  var svg='<svg width="100%" viewBox="0 0 '+svgW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg">';
+  [0,25,50,75,100].forEach(function(p){
+    var y=padB+(svgH-padB-12)*(1-p/100);
+    var val=Math.round(mxE*p/100);
+    svg+='<line x1="'+padL+'" y1="'+y+'" x2="'+(svgW-8)+'" y2="'+y+'" stroke="#e2e8f0" stroke-width="1"/>';
+    svg+='<text x="'+(padL-4)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#a0aec0">'+val+'</text>';
+  });
+  estados.forEach(function(e,i){
+    var x=padL+i*(barW+gap);
+    var bh=mxE?Math.round((svgH-padB-12)*e.v/mxE):0;
+    var y=(svgH-padB-12)-bh+12;
+    svg+='<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+bh+'" rx="5" fill="'+e.c+'" opacity="0.85"/>';
+    if(e.v>0)svg+='<text x="'+(x+barW/2)+'" y="'+(y-5)+'" text-anchor="middle" font-size="11" font-weight="600" fill="'+e.c+'">'+e.v+'</text>';
+    var lbl=e.l.length>10?e.l.slice(0,9)+'…':e.l;
+    svg+='<text x="'+(x+barW/2)+'" y="'+(svgH-padB+14)+'" text-anchor="middle" font-size="9.5" fill="#718096">'+lbl+'</text>';
+  });
+  svg+='</svg>';
+
+  // Dona fuente
+  var r2=48,cx=65,cy=65,strokeW=20,circ=2*Math.PI*r2,total2=en+nn||1;
+  var donaSvg='<svg width="130" height="130" viewBox="0 0 130 130">';
+  donaSvg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r2+'" fill="none" stroke="#edf2f7" stroke-width="'+strokeW+'"/>';
+  var off2=0;
+  [{v:en,c:'#805ad5'},{v:nn,c:'#2b9fd4'}].forEach(function(d){
+    var dash=circ*d.v/total2,gap2=circ-dash;
+    donaSvg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r2+'" fill="none" stroke="'+d.c+'" stroke-width="'+strokeW+'" stroke-dasharray="'+dash+' '+gap2+'" stroke-dashoffset="'+(-(off2*circ/total2)-circ/4)+'" opacity="0.85"/>';
+    off2+=d.v;
+  });
+  donaSvg+='<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1f2e">'+t+'</text>';
+  donaSvg+='<text x="'+cx+'" y="'+(cy+18)+'" text-anchor="middle" font-size="9" fill="#718096">total</text>';
+  donaSvg+='</svg>';
+
+  document.getElementById('icli').innerHTML=
+    '<div class="ind-title">Estados de revisión</div><div style="overflow-x:auto">'+svg+'</div>';
+
+  document.getElementById('iresp').innerHTML=
+    '<div class="ind-title">Distribución por fuente</div>'+
+    '<div style="display:flex;align-items:center;gap:14px">'+donaSvg+
+    '<div style="flex:1">'+[{l:'Escritos',v:en,c:'#805ad5'},{l:'Notificaciones',v:nn,c:'#2b9fd4'}].map(function(d){
+      return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+        '<span style="width:10px;height:10px;border-radius:50%;background:'+d.c+';flex-shrink:0;display:inline-block"></span>'+
+        '<span style="font-size:12.5px;flex:1">'+d.l+'</span>'+
+        '<span style="font-size:14px;font-weight:600;color:var(--navy)">'+d.v+'</span></div>';
+    }).join('')+'</div></div>';
+
   var rm={};all.forEach(function(r){if(!r.resp)return;rm[r.resp]=(rm[r.resp]||0)+1;});
-  var topR=Object.entries(rm).sort(function(a,b){return b[1]-a[1];}).slice(0,8),mxR=topR.length?topR[0][1]:1;
+  var topR=Object.entries(rm).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
   var rh='<div class="ind-title">Por responsable</div>';
   if(!topR.length)rh+='<p style="color:var(--muted);font-size:12.5px">Sin datos.</p>';
-  else topR.forEach(function(e){rh+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e[0])+'</span><div class="bw"><div class="bf" style="background:#4299e1;width:'+Math.round(e[1]/mxR*100)+'%"></div></div><span style="font-size:11px;color:var(--muted);min-width:22px;text-align:right">'+e[1]+'</span></div>';});
-  document.getElementById('iresp').innerHTML=rh;
-  var fm={};all.forEach(function(r){if(!r.src)return;fm[r.src]=(fm[r.src]||0)+1;});
-  var fh='<div class="ind-title">Por tipo de reporte</div>';
-  Object.entries(fm).forEach(function(e){var pct=t?Math.round(e[1]/t*100):0;fh+='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">'+esc(e[0])+'</span><span style="font-size:11.5px;color:var(--muted)">'+e[1]+' ('+pct+'%)</span></div><div style="height:5px;border-radius:3px;background:#edf2f7;margin-bottom:10px"><div style="height:100%;border-radius:3px;background:#4299e1;width:'+pct+'%"></div></div>';});
-  if(!Object.keys(fm).length)fh+='<p style="color:var(--muted);font-size:12.5px">Sin datos.</p>';
-  document.getElementById('ifuente').innerHTML=fh;
-  var jh='<div class="ind-title">Jornadas por fecha</div>';
+  else{
+    rh+='<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+    topR.forEach(function(e,i){
+      rh+='<tr style="border-bottom:1px solid #f0f4f8">'+
+        '<td style="padding:7px 4px;color:var(--muted);font-size:11px;width:18px">'+(i+1)+'</td>'+
+        '<td style="padding:7px 6px">'+esc(e[0])+'</td>'+
+        '<td style="padding:7px 4px;text-align:right;font-weight:600;color:var(--navy)">'+e[1]+'</td></tr>';
+    });
+    rh+='</table>';
+  }
+  document.getElementById('ifuente').innerHTML=rh;
+
+  var jh='<div class="ind-title">Resumen de jornadas</div>';
   var fechas=sortedFechas();
   if(!fechas.length)jh+='<p style="color:var(--muted);font-size:12.5px">Sin jornadas.</p>';
-  else fechas.forEach(function(f){
-    var j=hist[f],tot=0,en2=0,nn2=0;
-    ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s]){tot+=j.slots[s].n;if(j.slots[s].src==='Escritos')en2+=j.slots[s].n;else nn2+=j.slots[s].n;}});
-    jh+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 14px;background:var(--light);border-radius:8px;border:1px solid var(--border)">'+
-      '<span style="font-weight:600;font-size:12.5px;color:var(--navy)">📁 '+f+'</span>'+
-      (j.cerrada?'<span style="background:#c6f6d5;color:#22543d;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">Cerrada</span>':'')+
-      '<span style="background:#e9d8fd;color:#553c9a;padding:1px 8px;border-radius:10px;font-size:10.5px;font-weight:700;margin-left:auto">Escritos: '+en2+'</span>'+
-      '<span style="background:#bee3f8;color:#2a4a7f;padding:1px 8px;border-radius:10px;font-size:10.5px;font-weight:700">Notif: '+nn2+'</span>'+
-      '<span style="background:#fff;border:1px solid var(--border);padding:1px 8px;border-radius:10px;font-size:10.5px;font-weight:700">Total: '+tot+'</span>'+
-    '</div>';
-  });
+  else{
+    jh+='<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:var(--light)">'+
+      '<th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Fecha</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Escritos</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Notif.</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Total</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Estado</th>'+
+    '</tr></thead><tbody>';
+    fechas.forEach(function(f){
+      var j=hist[f],tot=0,en2=0,nn2=0;
+      ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s]){tot+=j.slots[s].n;if(j.slots[s].src==='Escritos')en2+=j.slots[s].n;else nn2+=j.slots[s].n;}});
+      jh+='<tr style="border-bottom:1px solid #f0f4f8">'+
+        '<td style="padding:8px 10px;font-weight:600">'+f+'</td>'+
+        '<td style="padding:8px 10px;text-align:center;color:#805ad5">'+en2+'</td>'+
+        '<td style="padding:8px 10px;text-align:center;color:#2b9fd4">'+nn2+'</td>'+
+        '<td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--navy)">'+tot+'</td>'+
+        '<td style="padding:8px 10px;text-align:center">'+
+          (j.cerrada?'<span style="background:#c6f6d5;color:#22543d;padding:2px 9px;border-radius:20px;font-size:10px">Cerrada</span>':
+          '<span style="background:#fefcbf;color:#744210;padding:2px 9px;border-radius:20px;font-size:10px">En curso</span>')+
+        '</td></tr>';
+    });
+    jh+='</tbody></table>';
+  }
   document.getElementById('ijorn').innerHTML=jh;
 }
 
