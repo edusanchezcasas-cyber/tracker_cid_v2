@@ -91,7 +91,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
 .twrap{border-radius:10px;overflow:auto;max-height:52vh;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:12px}
-.t-main{min-width:1900px}
+.t-main{min-width:2200px}
 thead{background:var(--navy);position:sticky;top:0;z-index:3}
 th{padding:10px 10px;font-weight:600;color:rgba(255,255,255,.85);font-size:10px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;text-align:left;border-right:1px solid rgba(255,255,255,.07)}
 th:last-child{border-right:none}
@@ -214,6 +214,10 @@ tr:hover td{background:#f7faff}
         <th style="min-width:260px">Descripción<br><input class="th-filter" data-col="desc" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:130px">Responsable<br><input class="th-filter" data-col="resp" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:120px">Supervisor<br><input class="th-filter" data-col="sup" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
+        <th style="min-width:160px">Contraparte<br><input class="th-filter" data-col="contraparte" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
+        <th style="min-width:140px">Materia<br><input class="th-filter" data-col="materia" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
+        <th style="min-width:140px">Relevancia<br><input class="th-filter" data-col="relevancia" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
+        <th style="min-width:180px">Bitácora<br><input class="th-filter" data-col="bitacora" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:130px">Estado rev.<br><input class="th-filter" data-col="est" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Revisado por</th><th style="min-width:140px">Validado por</th><th style="min-width:120px">Fecha rev.</th>
         <th style="min-width:130px">Val. Sent/Pago</th><th style="min-width:120px">Val. Estados</th><th style="min-width:120px">Val. Tareas</th>
@@ -283,7 +287,7 @@ var ES={
   'Con incidencia':{bg:'#fed7d7',fg:'#742a2a',bd:'#fc8181'},
   'No corresponde':{bg:'#edf2f7',fg:'#718096',bd:'#e2e8f0'}
 };
-var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
+var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Bitácora','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
 
 function pad(n){return String(n).padStart(2,'0');}
 function now(){var d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
@@ -340,14 +344,27 @@ function normT(data,slotId){
   var sd=shortDate();
   var out=[];
   for(var i=0;i<data.length;i++){
-    var r=data[i],id=gf(r,'ID','id'),exp=gf(r,'Expediente','expediente'),tip=gf(r,'Tipo de escrito','tipo de escrito');
+    var r=data[i];
+    var id=gf(r,'nroproceso','ID','id');
+    var exp=gf(r,'expediente','Expediente','EXP.','EXP');
+    var nom=gf(r,'nombre','NOMBRE','Nombre');
     if(!id&&!exp)continue;
     var o=baseR();
-    o.key='T|'+id+'|'+exp+'|'+tip;o.fc2=now();o.src='Escritos';o.slot=slotId;
+    o.key='T|'+id+'|'+exp+'|'+nom;o.fc2=now();o.src='Escritos';o.slot=slotId;
     o.fuenteLbl=SLOT_SHORT[slotId]+' '+sd;
-    o.id=String(id);o.cli=String(gf(r,'Cliente','cliente')||'');
-    o.exp=String(exp);o.tip=String(tip);o.desc=String(tip);
-    o.resp=String(gf(r,'Abogado Responsable','abogado responsable')||'');o.sup='';
+    o.id=String(id);
+    o.cli=String(gf(r,'cliente','Cliente','CLIENTE')||'');
+    o.exp=String(exp);
+    o.tip=String(gf(r,'tipo','Tipo','TIPO')||'');
+    o.desc=String(nom);
+    o.resp=String(gf(r,'responsable','Responsable','RESPONSABLE')||'');
+    o.sup=String(gf(r,'supervisor','Supervisor','SUPERVISOR')||'');
+    o.contraparte=String(gf(r,'contraparte','Contraparte','CONTRAPARTE')||'');
+    o.materia=String(gf(r,'materia','Materia','MATERIA')||'');
+    o.submateria=String(gf(r,'submateria','Submateria','SUBMATERIA')||'');
+    o.relevancia=String(gf(r,'relevancia','Relevancia','RELEVANCIA')||'');
+    o.bitacora=String(gf(r,'bitacora','Bitacora','BITACORA')||'');
+    o.referencia=String(gf(r,'referencia','Referencia','REFERENCIA')||'');
     out.push(o);
   }
   return out;
@@ -438,7 +455,7 @@ function paint(){
   var data=filtrar();
   var tb=document.getElementById('tbody');
   document.getElementById('rowcount').textContent=data.length+' registro'+(data.length!==1?'s':'');
-  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="17">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="21">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
   var h='';for(var i=0;i<data.length;i++)h+=buildRow(data[i]);
   tb.innerHTML=h;
 }
@@ -476,6 +493,10 @@ function buildRow(r){
     '<td style="min-width:260px;max-width:360px;white-space:normal;word-break:break-word">'+esc(r.desc)+'</td>'+
     '<td style="font-weight:500">'+esc(r.resp)+'</td>'+
     '<td>'+esc(r.sup)+'</td>'+
+    '<td style="max-width:160px;white-space:normal;word-break:break-word">'+esc(r.contraparte||'')+'</td>'+
+    '<td style="max-width:140px;white-space:normal;word-break:break-word">'+esc(r.materia||'')+'</td>'+
+    '<td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:'+(r.relevancia==='SENSIBLE'?'#fed7d7':'#edf2f7')+';color:'+(r.relevancia==='SENSIBLE'?'#742a2a':'#718096')+'">'+esc(r.relevancia||'—')+'</span></td>'+
+    '<td style="max-width:200px;white-space:normal;word-break:break-word;font-size:11px">'+esc(r.bitacora||'')+'</td>'+
     '<td><select class="ssel" style="background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+';min-width:120px" data-k="'+k+'" onchange="chEst(this)">'+eopts+'</select></td>'+
     '<td>'+revSel(r.rev)+'</td>'+
     '<td>'+psel('val',r.val,VAL_OPTS)+'</td>'+
@@ -521,7 +542,7 @@ function refresh(){
   document.getElementById('hbadge').textContent=rows.length+' registros activos';
 }
 
-function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
+function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.bitacora||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
 
 function exportXLSX(data,sheetName,filename){
   var wb=XLSX.utils.book_new();
@@ -703,9 +724,9 @@ function buildSubCarpeta(fecha,slotId,rep,uid){
     '</div>'+
     '<div class="jb" id="jb_'+uid+'">'+
     '<div style="overflow:auto;max-height:260px;border-radius:8px;border:1px solid var(--border)">'+
-    '<table style="width:100%;border-collapse:collapse;min-width:1500px;font-size:11px">'+
+    '<table style="width:100%;border-collapse:collapse;min-width:2000px;font-size:11px">'+
     '<thead style="background:var(--navy);position:sticky;top:0"><tr>'+
-    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
+    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Bitácora','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
       return'<th style="padding:8px 9px;font-weight:700;color:rgba(255,255,255,.85);font-size:9.5px;text-transform:uppercase;white-space:nowrap;text-align:left">'+h+'</th>';
     }).join('')+
     '</tr></thead><tbody>'+trs+'</tbody></table></div>'+pag+'</div></div>';
@@ -722,6 +743,9 @@ function buildRR(r){
     td('<span class="sbdg" style="background:'+sc.bg+';color:'+sc.fg+'">'+esc(r.fuenteLbl)+'</span>')+
     td(idCell)+td(esc(r.cli))+td(esc(r.exp))+td(esc(r.tip))+td(esc(r.desc))+
     td(esc(r.resp))+td(esc(r.sup))+
+    td(esc(r.contraparte||''))+td(esc(r.materia||''))+
+    td('<span style="font-size:10px;padding:2px 5px;border-radius:8px;background:'+(r.relevancia==='SENSIBLE'?'#fed7d7':'#edf2f7')+';color:'+(r.relevancia==='SENSIBLE'?'#742a2a':'#718096')+'">'+esc(r.relevancia||'—')+'</span>')+
+    td(esc(r.bitacora||''))+
     td('<span style="padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+'">'+esc(r.est)+'</span>')+
     td(esc(r.rev))+td(esc(r.val))+td(esc(r.frev))+
     td(vb(r.vs))+td(vb(r.ve))+td(vb(r.vt))+td(esc(r.ov))+
