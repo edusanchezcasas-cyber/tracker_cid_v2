@@ -217,6 +217,7 @@ tr:hover td{background:#f7faff}
         <th style="min-width:160px">Contraparte<br><input class="th-filter" data-col="contraparte" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Materia<br><input class="th-filter" data-col="materia" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Relevancia<br><input class="th-filter" data-col="relevancia" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
+        <th style="min-width:180px">Bitácora<br><input class="th-filter" data-col="bitacora" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:130px">Estado rev.<br><input class="th-filter" data-col="est" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Revisado por</th><th style="min-width:140px">Validado por</th><th style="min-width:120px">Fecha rev.</th>
         <th style="min-width:130px">Val. Sent/Pago</th><th style="min-width:120px">Val. Estados</th><th style="min-width:120px">Val. Tareas</th>
@@ -262,6 +263,8 @@ var jPages={};
 var SLOT_BASE={E:'Escritos',N1:'Notificaciones 1',N2:'Notificaciones 2',N3:'Notificaciones 3'};
 var SLOT_SHORT={E:'Escrit.',N1:'Notif.1',N2:'Notif.2',N3:'Notif.3'};
 var SLOT_SRC={E:'Escritos',N1:'Notificaciones',N2:'Notificaciones',N3:'Notificaciones'};
+var TEAMS={'Cynthia Lagos':'Team Lagos','Solanch Estrella':'Team Estrella','Elyana Arias':'Team Arias','Carlos Morales':'Team Morales','Katia Jacinto':'Team Jacinto','Samuel Paz':'Team Paz'};
+var TEAM_COLORS={'Team Lagos':'#4299e1','Team Estrella':'#ed8936','Team Arias':'#38a169','Team Morales':'#805ad5','Team Jacinto':'#e53e3e','Team Paz':'#2b9fd4'};
 var SLOT_COLORS={
   E:{bg:'#e9d8fd',fg:'#553c9a'},
   N1:{bg:'#bee3f8',fg:'#2a4a7f'},
@@ -287,7 +290,7 @@ var ES={
   'Con incidencia':{bg:'#fed7d7',fg:'#742a2a',bd:'#fc8181'},
   'No corresponde':{bg:'#edf2f7',fg:'#718096',bd:'#e2e8f0'}
 };
-var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
+var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Bitácora','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
 
 function pad(n){return String(n).padStart(2,'0');}
 function now(){var d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
@@ -356,7 +359,7 @@ function normT(data,slotId){
     o.cli=String(gf(r,'cliente','Cliente','CLIENTE')||'');
     o.exp=String(exp);
     o.tip=String(gf(r,'tipo','Tipo','TIPO')||'');
-    o.desc=String(nom);
+    o.desc=String(gf(r,'nombre','NOMBRE','Nombre','descripcion','DESCRIPCION','referencia','Referencia')||nom||'');
     o.resp=String(gf(r,'responsable','Responsable','RESPONSABLE','abogado responsable','Abogado Responsable')||'');
     o.sup=String(gf(r,'supervisor','Supervisor','SUPERVISOR')||'');
     o.contraparte=String(gf(r,'contraparte','Contraparte','CONTRAPARTE')||'');
@@ -364,6 +367,7 @@ function normT(data,slotId){
     o.submateria=String(gf(r,'submateria','Submateria','SUBMATERIA')||'');
     o.relevancia=String(gf(r,'relevancia','Relevancia','RELEVANCIA')||'');
     o.bitacora=String(gf(r,'bitacora','Bitacora','BITACORA')||'');
+    o.bitacora=String(gf(r,'bitacora','Bitacora','BITACORA','bitácora')||'');
     o.referencia=String(gf(r,'referencia','Referencia','REFERENCIA')||'');
     out.push(o);
   }
@@ -465,7 +469,7 @@ function paint(){
   var data=filtrar();
   var tb=document.getElementById('tbody');
   document.getElementById('rowcount').textContent=data.length+' registro'+(data.length!==1?'s':'');
-  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="20">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="21">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
   var h='';for(var i=0;i<data.length;i++)h+=buildRow(data[i]);
   tb.innerHTML=h;
 }
@@ -506,6 +510,7 @@ function buildRow(r){
     '<td style="max-width:160px;white-space:normal;word-break:break-word">'+esc(r.contraparte||'')+'</td>'+
     '<td style="max-width:140px;white-space:normal;word-break:break-word">'+esc(r.materia||'')+'</td>'+
     '<td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:'+(r.relevancia==='SENSIBLE'?'#fed7d7':'#edf2f7')+';color:'+(r.relevancia==='SENSIBLE'?'#742a2a':'#718096')+'">'+esc(r.relevancia||'—')+'</span></td>'+
+    '<td style="max-width:200px;white-space:normal;word-break:break-word;font-size:11px">'+esc(r.bitacora||'')+'</td>'+
     '<td><select class="ssel" style="background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+';min-width:120px" data-k="'+k+'" onchange="chEst(this)">'+eopts+'</select></td>'+
     '<td>'+revSel(r.rev)+'</td>'+
     '<td>'+psel('val',r.val,VAL_OPTS)+'</td>'+
@@ -551,7 +556,7 @@ function refresh(){
   document.getElementById('hbadge').textContent=rows.length+' registros activos';
 }
 
-function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
+function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.bitacora||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
 
 function exportXLSX(data,sheetName,filename){
   var wb=XLSX.utils.book_new();
@@ -739,7 +744,7 @@ function buildSubCarpeta(fecha,slotId,rep,uid){
     '<div style="overflow:auto;max-height:260px;border-radius:8px;border:1px solid var(--border)">'+
     '<table style="width:100%;border-collapse:collapse;min-width:2000px;font-size:11px">'+
     '<thead style="background:var(--navy);position:sticky;top:0"><tr>'+
-    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
+    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Bitácora','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
       return'<th style="padding:8px 9px;font-weight:700;color:rgba(255,255,255,.85);font-size:9.5px;text-transform:uppercase;white-space:nowrap;text-align:left">'+h+'</th>';
     }).join('')+
     '</tr></thead><tbody>'+trs+'</tbody></table></div>'+pag+'</div></div>';
@@ -758,6 +763,7 @@ function buildRR(r){
     td(esc(r.resp))+td(esc(r.sup))+
     td(esc(r.contraparte||''))+td(esc(r.materia||''))+
     td('<span style="font-size:10px;padding:2px 5px;border-radius:8px;background:'+(r.relevancia==='SENSIBLE'?'#fed7d7':'#edf2f7')+';color:'+(r.relevancia==='SENSIBLE'?'#742a2a':'#718096')+'">'+esc(r.relevancia||'—')+'</span>')+
+    td(esc(r.bitacora||''))+
     td('<span style="padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+'">'+esc(r.est)+'</span>')+
     td(esc(r.rev))+td(esc(r.val))+td(esc(r.frev))+
     td(vb(r.vs))+td(vb(r.ve))+td(vb(r.vt))+td(esc(r.ov))+
@@ -880,19 +886,44 @@ function renderInd(){
         '<span style="font-size:14px;font-weight:600;color:var(--navy)">'+d.v+'</span></div>';
     }).join('')+'</div></div>';
 
-  var rm={};all.forEach(function(r){if(!r.resp)return;rm[r.resp]=(rm[r.resp]||0)+1;});
-  var topR=Object.entries(rm).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
-  var rh='<div class="ind-title">Por responsable</div>';
-  if(!topR.length)rh+='<p style="color:var(--muted);font-size:12.5px">Sin datos.</p>';
+  // Por equipo (agrupado por supervisor)
+  var teamMap={};
+  all.forEach(function(r){
+    if(!r.sup)return;
+    var team=TEAMS[r.sup]||('Team '+r.sup);
+    if(!teamMap[team])teamMap[team]={n:0,rev:0,pen:0,inc:0};
+    teamMap[team].n++;
+    if(r.est==='Revisado')teamMap[team].rev++;
+    else if(r.est==='Pendiente')teamMap[team].pen++;
+    else if(r.est==='Con incidencia')teamMap[team].inc++;
+  });
+  var teamList=Object.entries(teamMap).sort(function(a,b){return b[1].n-a[1].n;});
+  var mxT=teamList.length?teamList[0][1].n:1;
+  var rh='<div class="ind-title">Por equipo</div>';
+  if(!teamList.length)rh+='<p style="color:var(--muted);font-size:12.5px">Sin datos.</p>';
   else{
-    rh+='<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
-    topR.forEach(function(e,i){
+    rh+='<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead>'+
+      '<tr style="background:var(--light)">'+
+      '<th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Equipo</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Total</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Revisados</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Pendientes</th>'+
+      '<th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Incidencia</th>'+
+      '</tr></thead><tbody>';
+    teamList.forEach(function(e){
+      var tc=TEAM_COLORS[e[0]]||'#4299e1';
+      var pct2=e[1].n?Math.round(e[1].rev/e[1].n*100):0;
       rh+='<tr style="border-bottom:1px solid #f0f4f8">'+
-        '<td style="padding:7px 4px;color:var(--muted);font-size:11px;width:18px">'+(i+1)+'</td>'+
-        '<td style="padding:7px 6px">'+esc(e[0])+'</td>'+
-        '<td style="padding:7px 4px;text-align:right;font-weight:600;color:var(--navy)">'+e[1]+'</td></tr>';
+        '<td style="padding:8px 10px"><span style="display:inline-flex;align-items:center;gap:6px">'+
+        '<span style="width:9px;height:9px;border-radius:50%;background:'+tc+';display:inline-block"></span>'+
+        '<span style="font-weight:500">'+esc(e[0])+'</span></span></td>'+
+        '<td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--navy)">'+e[1].n+'</td>'+
+        '<td style="padding:8px 10px;text-align:center;color:#38a169;font-weight:600">'+e[1].rev+'</td>'+
+        '<td style="padding:8px 10px;text-align:center;color:#d69e2e">'+e[1].pen+'</td>'+
+        '<td style="padding:8px 10px;text-align:center;color:#e53e3e">'+e[1].inc+'</td>'+
+        '</tr>';
     });
-    rh+='</table>';
+    rh+='</tbody></table>';
   }
   document.getElementById('ifuente').innerHTML=rh;
 
