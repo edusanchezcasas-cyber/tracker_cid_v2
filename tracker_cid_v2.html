@@ -158,6 +158,7 @@ tr:hover td{background:#f7faff}
   </div>
 </div>
 
+<div id="syncbar" style="display:none;background:#fefcbf;color:#744210;padding:8px 22px;font-size:12px;font-weight:600;align-items:center;gap:8px;border-bottom:1px solid #f6e05e">⏳ <span id="syncmsg">Sincronizando...</span></div>
 <div class="main">
 
 <!-- ACTUAL -->
@@ -190,6 +191,7 @@ tr:hover td{background:#f7faff}
     <button class="btn bv" onclick="btnCerrar()">🔒 Cerrar jornada</button>
     <button class="btn bk" onclick="btnLimpiar()">✕ Limpiar filtros</button>
     <button class="btn br" onclick="btnBorrar()">🗑 Borrar base</button>
+    <button class="btn bk" onclick="btnLimpiarLS()" style="font-size:11px">🗄 Limpiar historial guardado</button>
   </div>
 
   <div class="search-bar">
@@ -221,6 +223,8 @@ tr:hover td{background:#f7faff}
         <th style="min-width:130px">Estado rev.<br><input class="th-filter" data-col="est" oninput="colFilter(this)" onclick="event.stopPropagation()" placeholder="Filtrar..."></th>
         <th style="min-width:140px">Revisado por</th><th style="min-width:140px">Validado por</th><th style="min-width:120px">Fecha rev.</th>
         <th style="min-width:130px">Val. Sent/Pago</th><th style="min-width:120px">Val. Estados</th><th style="min-width:120px">Val. Tareas</th>
+        <th style="min-width:190px">Tipificación</th>
+        <th style="min-width:220px">Subtipificación</th>
         <th style="min-width:180px">Obs. Validación</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
@@ -238,6 +242,15 @@ tr:hover td{background:#f7faff}
 
 <!-- INDICADORES -->
 <div id="p-ind" class="panel">
+  <!-- Filtro fecha -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;background:var(--surface);padding:12px 18px;border-radius:10px;border:1px solid var(--border)">
+    <span style="font-size:11.5px;font-weight:600;color:var(--navy)">Período:</span>
+    <input type="date" id="indDesde" onchange="renderInd()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit">
+    <span style="font-size:12px;color:var(--muted)">hasta</span>
+    <input type="date" id="indHasta" onchange="renderInd()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit">
+    <button class="btn bk" onclick="clearIndFechas()" style="font-size:11px;padding:5px 12px">✕ Todo</button>
+    <span style="font-size:11.5px;color:var(--muted)" id="indFechaLbl"></span>
+  </div>
   <div class="kgrid-sm" id="ikpis"></div>
   <div class="semrow" id="isems"></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px">
@@ -282,6 +295,13 @@ var VOPTS=[
   {v:'error',l:'❌ Error',bg:'#fed7d7',fg:'#742a2a',bd:'#fc8181'},
   {v:'naplica',l:'➖ No aplica',bg:'#edf2f7',fg:'#718096',bd:'#e2e8f0'}
 ];
+var TIPIF={
+  'Omisión de agendamiento':['Omisión de agenda implícita (interpretación)','Omisión de agenda explícita','Omisión de agenda por incumplimiento de flujo'],
+  'Omisión de actualización del proceso':['Omisión de actualización implícita (interpretación)','Omisión de actualización explícita'],
+  'Omisión o error en datos de agenda':['Link incorrecto','Comentario o incidencia incorrecta'],
+  'Agendamiento incorrecto':['La tarea no corresponde al proceso','La tarea no corresponde al flujo','Fecha y hora incorrecta','Responsable incorrecto']
+};
+var TIPIF_KEYS=Object.keys(TIPIF);
 var EOPTS=['Pendiente','En revisión','Revisado','Con incidencia','No corresponde'];
 var ES={
   'Pendiente':{bg:'#fefcbf',fg:'#744210',bd:'#f6e05e'},
@@ -290,7 +310,7 @@ var ES={
   'Con incidencia':{bg:'#fed7d7',fg:'#742a2a',bd:'#fc8181'},
   'No corresponde':{bg:'#edf2f7',fg:'#718096',bd:'#e2e8f0'}
 };
-var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Bitácora','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Obs. validación'];
+var XLSX_H=['Fecha carga','Fuente','ID','Cliente','Expediente','Tipo','Descripción','Responsable','Supervisor','Contraparte','Materia','Relevancia','Bitácora','Estado revisión','Revisado por','Validado por','Fecha revisión','Val. Sentencia/Pago','Val. Estados','Val. Tareas','Tipificación','Subtipificación','Obs. validación'];
 
 function pad(n){return String(n).padStart(2,'0');}
 function now(){var d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
@@ -304,7 +324,7 @@ function getES(e){return ES[e]||ES['Pendiente'];}
 function hv(r,v){return r.vs===v||r.ve===v||r.vt===v;}
 function gv(id){var e=document.getElementById(id);return e?e.value:'';}
 function sv(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-function baseR(){return{est:'Pendiente',rev:'',val:'',frev:'',vs:'',ve:'',vt:'',ov:'',fc:now()};}
+function baseR(){return{est:'Pendiente',rev:'',val:'',frev:'',vs:'',ve:'',vt:'',ov:'',tif:'',stif:'',fc:now()};}
 
 function toast(msg,type){
   type=type||'ok';
@@ -469,11 +489,36 @@ function paint(){
   var data=filtrar();
   var tb=document.getElementById('tbody');
   document.getElementById('rowcount').textContent=data.length+' registro'+(data.length!==1?'s':'');
-  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="21">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr class="empty"><td colspan="23">Sin registros. Carga un archivo Excel para comenzar.</td></tr>';return;}
   var h='';for(var i=0;i<data.length;i++)h+=buildRow(data[i]);
   tb.innerHTML=h;
 }
 
+function buildTifSel(k,v){
+  var h='<select class="ssel" style="min-width:175px;background:#fff;border:1px solid #e2e8f0;color:#2d3748;font-size:11px" data-k="'+k+'" data-f="tif" onchange="chTif(this)">';
+  h+='<option value=""'+(v?'':' selected')+'>—</option>';
+  TIPIF_KEYS.forEach(function(t){h+='<option'+(v===t?' selected':'')+' value="'+esc(t)+'">'+esc(t)+'</option>';});
+  h+='</select>';return h;
+}
+function buildStifSel(k,tif,v){
+  var opts=tif&&TIPIF[tif]?TIPIF[tif]:[];
+  var h='<select class="ssel" id="stif_'+k+'" style="min-width:200px;background:#fff;border:1px solid #e2e8f0;color:#2d3748;font-size:11px" data-k="'+k+'" data-f="stif" onchange="chFld(this)"'+(opts.length?'':' disabled')+' style="opacity:'+(opts.length?'1':'0.5')+'">';
+  h+='<option value=""'+(v?'':' selected')+'>—</option>';
+  opts.forEach(function(s){h+='<option'+(v===s?' selected':'')+' value="'+esc(s)+'">'+esc(s)+'</option>';});
+  h+='</select>';return h;
+}
+function chTif(sel){
+  var r=findR(sel.dataset.k);if(!r)return;
+  r.tif=sel.value;r.stif='';
+  // Update subtif select
+  var stifSel=document.getElementById('stif_'+sel.dataset.k);
+  if(stifSel){
+    var opts=r.tif&&TIPIF[r.tif]?TIPIF[r.tif]:[];
+    stifSel.innerHTML='<option value="">—</option>';
+    opts.forEach(function(s){stifSel.innerHTML+='<option value="'+esc(s)+'">'+esc(s)+'</option>';});
+    stifSel.disabled=!opts.length;
+  }
+}
 function buildRow(r){
   var k=esc(r.key);
   var e=getES(r.est);
@@ -518,6 +563,8 @@ function buildRow(r){
     '<td>'+vsel('vs',r.vs)+'</td>'+
     '<td>'+vsel('ve',r.ve)+'</td>'+
     '<td>'+vsel('vt',r.vt)+'</td>'+
+    '<td>'+buildTifSel(k,r.tif)+'</td>'+
+    '<td>'+buildStifSel(k,r.tif,r.stif)+'</td>'+
     '<td><input class="icel" data-k="'+k+'" data-f="ov" value="'+esc(r.ov)+'" onchange="chFld(this)" placeholder="—"></td>'+
   '</tr>';
 }
@@ -530,7 +577,7 @@ function chEst(sel){
   if(r.est==='No corresponde'){r.rev='';r.val='';}
   var e=getES(r.est);
   sel.style.background=e.bg;sel.style.color=e.fg;sel.style.borderColor=e.bd;
-  calcKPIs();calcAlerts();
+  calcKPIs();calcAlerts();debounceSave();
 }
 function chRev(sel){
   var r=findR(sel.dataset.k);if(!r)return;
@@ -540,6 +587,7 @@ function chRev(sel){
     var cell=document.getElementById('frev_'+sel.dataset.k);
     if(cell)cell.textContent=r.frev;
   }
+  debounceSave();
 }
 function chVal(sel){
   var r=findR(sel.dataset.k);if(!r)return;
@@ -548,7 +596,9 @@ function chVal(sel){
   sel.style.background=o.bg;sel.style.color=o.fg;sel.style.borderColor=o.bd;
   calcKPIs();calcAlerts();
 }
-function chFld(el){var r=findR(el.dataset.k);if(!r)return;r[el.dataset.f]=el.value;}
+var _lsTimer=null;
+function debounceSave(){clearTimeout(_lsTimer);_lsTimer=setTimeout(lsSave,1500);}
+function chFld(el){var r=findR(el.dataset.k);if(!r)return;r[el.dataset.f]=el.value;debounceSave();}
 
 function refresh(){
   fillSel('fR',uniq('resp'));fillSel('fS',uniq('sup'));
@@ -556,7 +606,7 @@ function refresh(){
   document.getElementById('hbadge').textContent=rows.length+' registros activos';
 }
 
-function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.bitacora||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.ov];}
+function rowToArr(r){return[r.fc2,r.fuenteLbl,r.id,r.cli,r.exp,r.tip,r.desc,r.resp,r.sup,r.contraparte||'',r.materia||'',r.relevancia||'',r.bitacora||'',r.est,r.rev,r.val,r.frev,vlbl(r.vs),vlbl(r.ve),vlbl(r.vt),r.tif||'',r.stif||'',r.ov];}
 
 function exportXLSX(data,sheetName,filename){
   var wb=XLSX.utils.book_new();
@@ -602,6 +652,7 @@ function btnGuardar(){
     recs:recs.map(function(r){return Object.assign({},r);})
   };
   slotSaved[target]=true;
+  lsSave();
   renderWF();
   toast('💾 "'+SLOT_BASE[target]+'" actualizado en '+fecha+' — '+recs.length+' registros');
 }
@@ -632,6 +683,7 @@ function btnCerrar(){
     var l=document.getElementById('lbl-'+s);if(l)l.classList.remove('loaded');
     var t=document.getElementById('lbl-'+s+'-txt');if(t)t.textContent=SLOT_BASE[s];
   });
+  lsSave();
   refresh();renderWF();
   toast('✅ Jornada '+fecha+' cerrada');
 }
@@ -651,6 +703,7 @@ function btnBorrar(){
     var l=document.getElementById('lbl-'+s);if(l)l.classList.remove('loaded');
     var t=document.getElementById('lbl-'+s+'-txt');if(t)t.textContent=SLOT_BASE[s];
   });
+  lsSave();
   refresh();renderWF();toast('🗑 Base borrada','warn');
 }
 
@@ -744,7 +797,7 @@ function buildSubCarpeta(fecha,slotId,rep,uid){
     '<div style="overflow:auto;max-height:260px;border-radius:8px;border:1px solid var(--border)">'+
     '<table style="width:100%;border-collapse:collapse;min-width:2000px;font-size:11px">'+
     '<thead style="background:var(--navy);position:sticky;top:0"><tr>'+
-    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Bitácora','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Obs.'].map(function(h){
+    ['Fecha','Fuente','ID','Cliente','Expediente','Tipo','Desc.','Responsable','Supervisor','Contraparte','Materia','Relev.','Bitácora','Estado','Rev.','Val.','F.rev','V.Sent','V.Est','V.Tar','Tipif.','Subtipif.','Obs.'].map(function(h){
       return'<th style="padding:8px 9px;font-weight:700;color:rgba(255,255,255,.85);font-size:9.5px;text-transform:uppercase;white-space:nowrap;text-align:left">'+h+'</th>';
     }).join('')+
     '</tr></thead><tbody>'+trs+'</tbody></table></div>'+pag+'</div></div>';
@@ -766,7 +819,7 @@ function buildRR(r){
     td(esc(r.bitacora||''))+
     td('<span style="padding:3px 7px;border-radius:5px;font-size:10px;font-weight:700;background:'+e.bg+';color:'+e.fg+';border:1px solid '+e.bd+'">'+esc(r.est)+'</span>')+
     td(esc(r.rev))+td(esc(r.val))+td(esc(r.frev))+
-    td(vb(r.vs))+td(vb(r.ve))+td(vb(r.vt))+td(esc(r.ov))+
+    td(vb(r.vs))+td(vb(r.ve))+td(vb(r.vt))+td(esc(r.tif||''))+td(esc(r.stif||''))+td(esc(r.ov))+
   '</tr>';
 }
 
@@ -790,13 +843,33 @@ function dlXLSXSlot(fecha,slotId){
 
 // ---- INDICADORES ----
 function renderInd(){
-  // Only count rows[] (active) + cerrada jornadas (to avoid double counting saved-but-still-active)
-  var all=rows.slice();
+  // Build all records: active rows + cerrada jornadas only
+  var allBase=rows.slice();
   Object.values(hist).forEach(function(j){
     if(j.cerrada){
-      ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s])all=all.concat(j.slots[s].recs);});
+      ['E','N1','N2','N3'].forEach(function(s){if(j.slots[s])allBase=allBase.concat(j.slots[s].recs);});
     }
   });
+  // Apply date filter
+  var desdeEl=document.getElementById('indDesde');
+  var hastaEl=document.getElementById('indHasta');
+  var desde=desdeEl&&desdeEl.value?new Date(desdeEl.value):null;
+  var hasta=hastaEl&&hastaEl.value?new Date(hastaEl.value):null;
+  if(hasta)hasta.setHours(23,59,59);
+  var all=allBase.filter(function(r){
+    if(!desde&&!hasta)return true;
+    var d=parseDate(r.fc2);
+    if(!d)return true;
+    if(desde&&d<desde)return false;
+    if(hasta&&d>hasta)return false;
+    return true;
+  });
+  // Update label
+  var lbl=document.getElementById('indFechaLbl');
+  if(lbl){
+    if(desde||hasta)lbl.textContent='Mostrando '+all.length+' registros filtrados';
+    else lbl.textContent='Todos los registros ('+all.length+')';
+  }
   var t=all.length;
   var ok=all.filter(function(r){return r.est==='Revisado';}).length;
   var pen=all.filter(function(r){return r.est==='Pendiente';}).length;
@@ -1003,6 +1076,40 @@ function renderInd(){
   document.getElementById('ival').innerHTML=vh;
 }
 
+function btnLimpiarLS(){
+  if(!confirm('¿Borrar TODO el historial guardado (incluyendo jornadas cerradas)?\n\nEsta acción no se puede deshacer.'))return;
+  try{
+    localStorage.removeItem('tracker_cid_hist_v2');
+    localStorage.removeItem('tracker_cid_rows_v2');
+    localStorage.removeItem('tracker_cid_slots_v2');
+  }catch(e){}
+  if(GS_URL!=='REEMPLAZAR_CON_URL_DEL_WEB_APP'){
+    fetch(GS_URL,{method:'POST',body:JSON.stringify({action:'clear'})}).catch(function(){});
+  }
+  hist={};rows=[];
+  slotData={E:[],N1:[],N2:[],N3:[]};
+  slotLoaded={E:false,N1:false,N2:false,N3:false};
+  slotSaved={E:false,N1:false,N2:false,N3:false};
+  var BASE={E:'Escritos',N1:'Notificaciones 1',N2:'Notificaciones 2',N3:'Notificaciones 3'};
+  ['E','N1','N2','N3'].forEach(function(s){
+    var l=document.getElementById('lbl-'+s);if(l)l.classList.remove('loaded');
+    var t=document.getElementById('lbl-'+s+'-txt');if(t)t.textContent=BASE[s];
+  });
+  refresh();renderWF();
+  toast('🗄 Historial borrado','warn');
+}
+function clearIndFechas(){
+  document.getElementById('indDesde').value='';
+  document.getElementById('indHasta').value='';
+  renderInd();
+}
+function parseDate(str){
+  // str format DD/MM/YYYY HH:MM or DD/MM/YYYY
+  if(!str)return null;
+  var p=str.split(' ')[0].split('/');
+  if(p.length<3)return null;
+  return new Date(p[2],p[1]-1,p[0]);
+}
 function goTab(name){
   var map={actual:'p-actual',hist:'p-hist',ind:'p-ind'};
   Object.keys(map).forEach(function(k){var p=document.getElementById(map[k]);if(p)p.className='panel'+(k===name?' on':'');});
@@ -1012,7 +1119,96 @@ function goTab(name){
   if(name==='ind')renderInd();
 }
 
-renderWF();refresh();
+// ── Google Sheets Backend ──
+var GS_URL = 'https://script.google.com/macros/s/AKfycbxaZae1B-kCNe_V8FMEU5KYaSZSM45V14Y0j9ZY_TqS9INhnjQ5bLUmkxXhuyFli65-QQ/exec'; // <-- pega aquí tu URL
+
+function lsSave(){
+  // Siempre guardar en localStorage como respaldo inmediato
+  try{
+    localStorage.setItem('tracker_cid_hist_v2', JSON.stringify(hist));
+    localStorage.setItem('tracker_cid_rows_v2', JSON.stringify(rows));
+    localStorage.setItem('tracker_cid_slots_v2', JSON.stringify({slotData:slotData,slotLoaded:slotLoaded,slotSaved:slotSaved}));
+  }catch(e){}
+  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP')return;
+  // Enviar a Google Sheets via no-cors (Apps Script acepta POST sin preflight)
+  var payload={action:'save',hist:hist,rows:rows,slots:{slotData:slotData,slotLoaded:slotLoaded,slotSaved:slotSaved}};
+  fetch(GS_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify(payload)
+  }).catch(function(e){console.warn('GS save error:',e);});
+}
+
+function lsLoad(){
+  // Cargar desde localStorage primero (respaldo inmediato)
+  try{
+    var h=localStorage.getItem('tracker_cid_hist_v2');if(h)hist=JSON.parse(h);
+    var r=localStorage.getItem('tracker_cid_rows_v2');if(r)rows=JSON.parse(r);
+    var s=localStorage.getItem('tracker_cid_slots_v2');
+    if(s){var sd=JSON.parse(s);if(sd.slotData)slotData=sd.slotData;if(sd.slotLoaded)slotLoaded=sd.slotLoaded;if(sd.slotSaved)slotSaved=sd.slotSaved;}
+  }catch(e){}
+  restoreSlotUI();
+  renderWF();refresh();
+  // Luego sincronizar con Google Sheets via JSONP
+  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP')return;
+  showSyncBar('Sincronizando con servidor...');
+  window._gsCallback=function(d){
+    try{
+      if(d&&d.hist)hist=d.hist;
+      if(d&&d.rows)rows=d.rows;
+      if(d&&d.slots){
+        if(d.slots.slotData)slotData=d.slots.slotData;
+        if(d.slots.slotLoaded)slotLoaded=d.slots.slotLoaded;
+        if(d.slots.slotSaved)slotSaved=d.slots.slotSaved;
+      }
+      // Actualizar localStorage con datos del servidor
+      localStorage.setItem('tracker_cid_hist_v2',JSON.stringify(hist));
+      localStorage.setItem('tracker_cid_rows_v2',JSON.stringify(rows));
+      localStorage.setItem('tracker_cid_slots_v2',JSON.stringify({slotData:slotData,slotLoaded:slotLoaded,slotSaved:slotSaved}));
+    }catch(e){}
+    restoreSlotUI();
+    hideSyncBar();
+    renderWF();refresh();
+    // Limpiar script tag
+    var old=document.getElementById('_gsScript');
+    if(old)old.remove();
+  };
+  var sc=document.createElement('script');
+  sc.id='_gsScript';
+  sc.src=GS_URL+'?action=load&callback=_gsCallback';
+  sc.onerror=function(){
+    hideSyncBar('Sin conexión al servidor. Usando datos locales.');
+    var old=document.getElementById('_gsScript');if(old)old.remove();
+  };
+  document.head.appendChild(sc);
+}
+
+function restoreSlotUI(){
+  var BASE={E:'Escritos',N1:'Notificaciones 1',N2:'Notificaciones 2',N3:'Notificaciones 3'};
+  ['E','N1','N2','N3'].forEach(function(s){
+    var lbl=document.getElementById('lbl-'+s);
+    var txt=document.getElementById('lbl-'+s+'-txt');
+    if(slotLoaded[s]&&lbl){
+      lbl.classList.add('loaded');
+      var n=rows.filter(function(r){return r.slot===s;}).length;
+      if(txt)txt.textContent=BASE[s]+(n?' ('+n+')':'');
+    }
+  });
+}
+
+function showSyncBar(msg){
+  var b=document.getElementById('syncbar');
+  if(b){b.textContent=msg;b.style.display='flex';}
+}
+function hideSyncBar(msg){
+  var b=document.getElementById('syncbar');
+  if(!b)return;
+  if(msg){b.textContent=msg;b.style.background='#fed7d7';b.style.color='#742a2a';setTimeout(function(){b.style.display='none';},3000);}
+  else b.style.display='none';
+}
+
+lsLoad();
 </script>
 </body>
 </html>
