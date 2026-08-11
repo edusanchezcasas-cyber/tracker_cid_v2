@@ -135,6 +135,12 @@ tr:hover td{background:#f7faff}
 .bw{width:70px;height:5px;background:#e2e8f0;border-radius:3px;flex-shrink:0}
 .bf{height:100%;border-radius:3px}
 .ind-card{background:var(--surface);border-radius:10px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.subtabs{display:flex;gap:2px;background:var(--light);padding:4px;border-radius:9px;margin-bottom:14px;width:fit-content;border:1px solid var(--border)}
+.stab{padding:6px 18px;border:none;border-radius:7px;cursor:pointer;font-weight:600;font-size:12px;font-family:inherit;background:transparent;color:var(--muted);transition:.15s}
+.stab:hover{background:rgba(255,255,255,.7);color:var(--navy)}
+.stab.on{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.subpanel{display:none}
+.subpanel.on{display:block}
 .ind-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:13px;display:flex;align-items:center;gap:7px}
 .ind-title::before{content:'';display:inline-block;width:3px;height:13px;background:var(--gold);border-radius:2px}
 </style>
@@ -165,6 +171,11 @@ tr:hover td{background:#f7faff}
 
 <!-- SENT Y PAGOS -->
 <div id="p-syp" class="panel on">
+  <div class="subtabs">
+    <button class="stab on" onclick="goSubTab('syp','val')">📝 Validación</button>
+    <button class="stab" onclick="goSubTab('syp','hist')">📁 Histórico</button>
+  </div>
+  <div id="sub-syp-val" class="subpanel on">
   <div class="krow">
     <div class="kcard2"><div class="knum" id="kT-syp" style="color:var(--navy)">0</div><div class="ksub">Total registros</div><div class="kico">📋</div></div>
     <div class="kcard2"><div class="knum" id="kP-syp" style="color:#d69e2e">0</div><div class="ksub">Pendientes</div><div class="kico">⏳</div></div>
@@ -234,18 +245,23 @@ tr:hover td{background:#f7faff}
   </div>
 </div>
 
-  <!-- Histórico SyP -->
-  <div style="margin-top:20px">
-    <div style="font-weight:700;font-size:13px;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-      📁 Histórico — Sentencias y Pagos
+  </div><!-- /sub-syp-val -->
+  <div id="sub-syp-hist" class="subpanel">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-weight:700;font-size:13px;color:var(--navy)">Histórico — Sentencias y Pagos</span>
       <span id="hist-count-syp" style="background:var(--light);color:var(--muted);padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600">0 jornadas</span>
     </div>
     <div id="hbody-syp"></div>
-  </div>
+  </div><!-- /sub-syp-hist -->
 </div><!-- /p-syp -->
 
 <!-- NOTIFICACIONES -->
 <div id="p-notif" class="panel">
+  <div class="subtabs">
+    <button class="stab on" onclick="goSubTab('notif','val')">📝 Validación</button>
+    <button class="stab" onclick="goSubTab('notif','hist')">📁 Histórico</button>
+  </div>
+  <div id="sub-notif-val" class="subpanel on">
   <div class="krow">
     <div class="kcard2"><div class="knum" id="kT-notif" style="color:var(--navy)">0</div><div class="ksub">Total</div><div class="kico">📋</div></div>
     <div class="kcard2"><div class="knum" id="kP-notif" style="color:#d69e2e">0</div><div class="ksub">Pendientes</div><div class="kico">⏳</div></div>
@@ -308,14 +324,14 @@ tr:hover td{background:#f7faff}
       <tbody id="tbody-notif"></tbody>
     </table>
   </div>
-  <!-- Histórico Notif -->
-  <div style="margin-top:20px">
-    <div style="font-weight:700;font-size:13px;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-      📁 Histórico — Notificaciones
+  </div><!-- /sub-notif-val -->
+  <div id="sub-notif-hist" class="subpanel">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-weight:700;font-size:13px;color:var(--navy)">Histórico — Notificaciones</span>
       <span id="hist-count-notif" style="background:var(--light);color:var(--muted);padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600">0 jornadas</span>
     </div>
     <div id="hbody-notif"></div>
-  </div>
+  </div><!-- /sub-notif-hist -->
 </div><!-- /p-notif -->
 
 <!-- HISTÓRICO -->
@@ -323,13 +339,7 @@ tr:hover td{background:#f7faff}
 
 <!-- INDICADORES -->
 <div id="p-ind" class="panel">
-  <!-- Gestión histórico -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:3px;height:13px;background:var(--gold);border-radius:2px"></span>Gestión de histórico</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div id="ind-hist-list" style="flex:1;min-width:300px"></div>
-    </div>
-  </div>
+
   <!-- Filtro fecha -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;background:var(--surface);padding:12px 18px;border-radius:10px;border:1px solid var(--border)">
     <span style="font-size:11.5px;font-weight:600;color:var(--navy)">Período:</span>
@@ -1264,30 +1274,6 @@ function renderInd(){
     obh+='</tbody></table>';
   }
   // Add obs card after ival
-  // Gestión de histórico en indicadores
-  var hlistEl=document.getElementById('ind-hist-list');
-  if(hlistEl){
-    var hlistH='';
-    ['notif','syp'].forEach(function(sec){
-      var fechas=sortedFechas(sec);
-      var secLbl=sec==='notif'?'📬 Notificaciones':'📊 Sent. y Pagos';
-      hlistH+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px">'+secLbl+'</div>';
-      if(!fechas.length)hlistH+='<span style="font-size:11.5px;color:var(--muted)">Sin jornadas</span>';
-      else fechas.forEach(function(f){
-        var j=(SEC[sec].hist||{})[f];if(!j)return;
-        var tot=0;Object.values(j.slots).forEach(function(s){if(s)tot+=s.n;});
-        hlistH+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--light);border-radius:7px;margin-bottom:5px;border:1px solid var(--border)">'+
-          '<span style="font-size:12px;font-weight:600;color:var(--navy);flex:1">'+f+'</span>'+
-          '<span style="font-size:11px;color:var(--muted)">'+tot+' reg.</span>'+
-          (j.cerrada?'<span style="background:#c6f6d5;color:#22543d;padding:1px 7px;border-radius:10px;font-size:10px">Cerrada</span>':
-          '<span style="background:#fefcbf;color:#744210;padding:1px 7px;border-radius:10px;font-size:10px">En curso</span>')+
-          '<button onclick="deleteJornada(\"'+f+'\",\"'+sec+'\")" style="background:#fee2e2;color:#e53e3e;border:none;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">🗑 Eliminar</button>'+
-        '</div>';
-      });
-      hlistH+='</div>';
-    });
-    hlistEl.innerHTML=hlistH;
-  }
   var ovalEl=document.getElementById('oval');
   if(!ovalEl){
     ovalEl=document.createElement('div');ovalEl.className='ind-card';ovalEl.style.marginTop='12px';ovalEl.id='oval';
@@ -1376,6 +1362,19 @@ function parseDate(str){
   var p=str.split(' ')[0].split('/');
   if(p.length<3)return null;
   return new Date(p[2],p[1]-1,p[0]);
+}
+function goSubTab(sec,sub){
+  var valEl=document.getElementById('sub-'+sec+'-val');
+  var histEl=document.getElementById('sub-'+sec+'-hist');
+  if(valEl)valEl.className='subpanel'+(sub==='val'?' on':'');
+  if(histEl)histEl.className='subpanel'+(sub==='hist'?' on':'');
+  // Update stab buttons
+  var panel=document.getElementById('p-'+sec);
+  if(panel){
+    var stabs=panel.querySelectorAll('.stab');
+    stabs.forEach(function(b,i){b.className='stab'+(i===(sub==='val'?0:1)?' on':'');});
+  }
+  if(sub==='hist')renderHist(sec);
 }
 function goTab(name){
   var map={syp:'p-syp',notif:'p-notif',ind:'p-ind'};
