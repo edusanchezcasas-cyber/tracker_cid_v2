@@ -383,8 +383,8 @@ var SEC={
     slotSaved:{E:false,N1:false,N2:false,N3:false},
     rows:[],
     colFilters:{},
-    revOpts:['Joselin Janampa'],
-    valOpts:['Joselin Janampa'],
+    revOpts:['Joselin Janampa','Claudia Vasquez'],
+    valOpts:['Joselin Janampa','Claudia Vasquez'],
     hist:{}
   },
   notif:{
@@ -1052,11 +1052,18 @@ function dlXLSXSlot(fecha,slotId,sec){sec=sec||'syp';
 
 // ---- INDICADORES ----
 function renderInd(){
-  // Build records by section
+  // Build records by section — activos + histórico cerrado (sin duplicar)
   function buildAllSec(sec){
-    var S=SEC[sec];var arr=S.rows.slice();
+    var S=SEC[sec];
+    // IDs ya en rows[] activos para deduplicar
+    var seen={};
+    var arr=S.rows.slice();
+    arr.forEach(function(r){seen[r.key]=1;});
+    // Agregar jornadas cerradas que no estén ya en activos
     Object.values(S.hist||{}).forEach(function(j){
-      if(j.cerrada){Object.values(j.slots).forEach(function(s){if(s)arr=arr.concat(s.recs);});}
+      if(j.cerrada){Object.values(j.slots).forEach(function(sl){
+        if(sl)sl.recs.forEach(function(r){if(!seen[r.key]){seen[r.key]=1;arr.push(r);}});
+      });}
     });
     return arr;
   }
@@ -1409,12 +1416,24 @@ function lsLoad(){
   // Cargar desde localStorage primero (respaldo inmediato)
   try{
     var ss=localStorage.getItem('tracker_cid_sec_syp');
-    if(ss){var sd=JSON.parse(ss);Object.assign(SEC.syp,sd);}
+    if(ss){var sd=JSON.parse(ss);
+      if(sd.rows)SEC.syp.rows=sd.rows;
+      if(sd.hist)SEC.syp.hist=sd.hist;
+      if(sd.slotData)SEC.syp.slotData=sd.slotData;
+      if(sd.slotLoaded)SEC.syp.slotLoaded=sd.slotLoaded;
+      if(sd.slotSaved)SEC.syp.slotSaved=sd.slotSaved;
+    }
     var sn=localStorage.getItem('tracker_cid_sec_notif');
-    if(sn){var nd=JSON.parse(sn);Object.assign(SEC.notif,nd);}
+    if(sn){var nd=JSON.parse(sn);
+      if(nd.rows)SEC.notif.rows=nd.rows;
+      if(nd.hist)SEC.notif.hist=nd.hist;
+      if(nd.slotData)SEC.notif.slotData=nd.slotData;
+      if(nd.slotLoaded)SEC.notif.slotLoaded=nd.slotLoaded;
+      if(nd.slotSaved)SEC.notif.slotSaved=nd.slotSaved;
+    }
   }catch(e){}
   restoreSlotUI();
-  renderWF('syp');renderWF('notif');refresh();renderHist();
+  ensureSecHist();renderWF('syp');renderWF('notif');refresh();renderHist();
 
 // Event delegation for delete jornada buttons
 document.addEventListener('click',function(e){
@@ -1429,8 +1448,20 @@ document.addEventListener('click',function(e){
   showSyncBar('Sincronizando con servidor...');
   window._gsCallback=function(d){
     try{
-      if(d&&d.sec_syp)Object.assign(SEC.syp,d.sec_syp);
-      if(d&&d.sec_notif)Object.assign(SEC.notif,d.sec_notif);
+      if(d&&d.sec_syp){var gs=d.sec_syp;
+        if(gs.rows)SEC.syp.rows=gs.rows;
+        if(gs.hist)SEC.syp.hist=gs.hist;
+        if(gs.slotData)SEC.syp.slotData=gs.slotData;
+        if(gs.slotLoaded)SEC.syp.slotLoaded=gs.slotLoaded;
+        if(gs.slotSaved)SEC.syp.slotSaved=gs.slotSaved;
+      }
+      if(d&&d.sec_notif){var gn=d.sec_notif;
+        if(gn.rows)SEC.notif.rows=gn.rows;
+        if(gn.hist)SEC.notif.hist=gn.hist;
+        if(gn.slotData)SEC.notif.slotData=gn.slotData;
+        if(gn.slotLoaded)SEC.notif.slotLoaded=gn.slotLoaded;
+        if(gn.slotSaved)SEC.notif.slotSaved=gn.slotSaved;
+      }
       try{
         localStorage.setItem('tracker_cid_sec_syp',JSON.stringify(SEC.syp));
         localStorage.setItem('tracker_cid_sec_notif',JSON.stringify(SEC.notif));
@@ -1453,6 +1484,11 @@ document.addEventListener('click',function(e){
   document.head.appendChild(sc);
 }
 
+function ensureSecHist(){
+  ['syp','notif'].forEach(function(sec){
+    if(!SEC[sec].hist)SEC[sec].hist={};
+  });
+}
 function restoreSlotUI(){
   ['syp','notif'].forEach(function(sec){
     var S=SEC[sec];
