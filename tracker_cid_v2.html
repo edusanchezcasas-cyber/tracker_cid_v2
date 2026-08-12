@@ -476,7 +476,6 @@ function processFile(file,tipo,slotId,sec){
       S.rows.forEach(function(r){ex[r.key]=1;});
       nuevos.forEach(function(r){if(ex[r.key])dup++;else{S.rows.push(r);ag++;}});
       S.slotData[slotId]=nuevos;S.slotLoaded[slotId]=true;S.slotSaved[slotId]=false;
-      console.log('[processFile] sec='+sec+' slot='+slotId+' ag='+ag+' S.rows='+S.rows.length+' slotLoaded='+JSON.stringify(S.slotLoaded));
       var lbl=document.getElementById('lbl-'+slotId);if(lbl)lbl.classList.add('loaded');
       var txt=document.getElementById('lbl-'+slotId+'-txt');
       if(txt)txt.textContent=SLOT_BASE[slotId]+(ag?' ('+ag+')':'');
@@ -823,15 +822,12 @@ function ensureFecha(sec,fecha){
   }
 }
 function btnGuardar(sec){sec=sec||'syp';var S=SEC[sec];
-  console.log('[btnGuardar] sec='+sec+' slots='+JSON.stringify(S.slots)+' slotLoaded='+JSON.stringify(S.slotLoaded)+' rows='+S.rows.length);
   var target=null;
   for(var i=0;i<S.slots.length;i++){
     if(S.slotLoaded[S.slots[i]]){target=S.slots[i];break;}
   }
-  console.log('[btnGuardar] target='+target);
   if(!target){toast('No hay reporte cargado para guardar','warn');return;}
   var recs=S.rows.filter(function(r){return r.slot===target;});
-  console.log('[btnGuardar] recs='+recs.length+' rows='+S.rows.length);
   if(!recs.length){toast('El reporte activo no tiene registros','warn');return;}
   var fecha=todayStr();
   var d=new Date();var hora=pad(d.getHours())+':'+pad(d.getMinutes());
@@ -842,7 +838,6 @@ function btnGuardar(sec){sec=sec||'syp';var S=SEC[sec];
     n:recs.length,src:recs[0].src,
     recs:recs.map(function(r){return Object.assign({},r);})
   };
-  console.log('[btnGuardar] hist after save='+JSON.stringify(Object.keys(S.hist)));
   S.slotSaved[target]=true;
   lsSave();
   renderWF(sec);renderHist(sec);
@@ -915,7 +910,6 @@ function renderHist(sec){
   if(sec){
     // Render single section
     var fechas=sortedFechas(sec);
-    console.log('[renderHist] sec='+sec+' fechas='+JSON.stringify(fechas)+' hist keys='+JSON.stringify(Object.keys(SEC[sec].hist||{})));
     var cntEl=document.getElementById('hist-count-'+sec);
     if(cntEl)cntEl.textContent=fechas.length+' jornada'+(fechas.length!==1?'s':'');
     var b=document.getElementById('hbody-'+sec);if(!b)return;
@@ -978,7 +972,7 @@ function buildFechaCarpeta(fecha,jorn,fi,sec){sec=sec||'syp';
 }
 
 function buildSubCarpeta(fecha,slotId,rep,uid){
-  var sc=SLOT_COLORS[slotId];
+  var sc=SLOT_COLORS_DEF[slotId];
   var pg=jPages[uid]||0,pgs=Math.ceil(rep.recs.length/PS)||1;
   var sl=rep.recs.slice(pg*PS,(pg+1)*PS);
   var trs=sl.map(buildRR).join('');
@@ -1433,6 +1427,35 @@ function lsSave(){
   setTimeout(syncFromGS, 2000);
 }
 
+  window._gsCallback=function(d){
+    try{
+      if(d&&d.sec_syp){var gs=d.sec_syp;
+        if(gs.rows)SEC.syp.rows=gs.rows;
+        if(gs.hist)SEC.syp.hist=gs.hist;
+        if(gs.slotData)SEC.syp.slotData=gs.slotData;
+        if(gs.slotLoaded)SEC.syp.slotLoaded=gs.slotLoaded;
+        if(gs.slotSaved)SEC.syp.slotSaved=gs.slotSaved;
+      }
+      if(d&&d.sec_notif){var gn=d.sec_notif;
+        if(gn.rows)SEC.notif.rows=gn.rows;
+        if(gn.hist)SEC.notif.hist=gn.hist;
+        if(gn.slotData)SEC.notif.slotData=gn.slotData;
+        if(gn.slotLoaded)SEC.notif.slotLoaded=gn.slotLoaded;
+        if(gn.slotSaved)SEC.notif.slotSaved=gn.slotSaved;
+      }
+      try{
+        localStorage.setItem('tracker_cid_sec_syp',JSON.stringify(SEC.syp));
+        localStorage.setItem('tracker_cid_sec_notif',JSON.stringify(SEC.notif));
+      }catch(e){}
+      ensureSecHist();
+    }catch(e){}
+    restoreSlotUI();
+    hideSyncBar();
+    renderWF();refresh();
+    // Limpiar script tag
+    var old=document.getElementById('_gsScript');
+    if(old)old.remove();
+  };
 function lsLoad(){
   // Cargar desde localStorage primero (respaldo inmediato)
   try{
@@ -1467,38 +1490,10 @@ document.addEventListener('click',function(e){
   // Luego sincronizar con Google Sheets via JSONP
   if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP')return;
   showSyncBar('Sincronizando con servidor...');
-  window._gsCallback=function(d){
-    try{
-      if(d&&d.sec_syp){var gs=d.sec_syp;
-        if(gs.rows)SEC.syp.rows=gs.rows;
-        if(gs.hist)SEC.syp.hist=gs.hist;
-        if(gs.slotData)SEC.syp.slotData=gs.slotData;
-        if(gs.slotLoaded)SEC.syp.slotLoaded=gs.slotLoaded;
-        if(gs.slotSaved)SEC.syp.slotSaved=gs.slotSaved;
-      }
-      if(d&&d.sec_notif){var gn=d.sec_notif;
-        if(gn.rows)SEC.notif.rows=gn.rows;
-        if(gn.hist)SEC.notif.hist=gn.hist;
-        if(gn.slotData)SEC.notif.slotData=gn.slotData;
-        if(gn.slotLoaded)SEC.notif.slotLoaded=gn.slotLoaded;
-        if(gn.slotSaved)SEC.notif.slotSaved=gn.slotSaved;
-      }
-      try{
-        localStorage.setItem('tracker_cid_sec_syp',JSON.stringify(SEC.syp));
-        localStorage.setItem('tracker_cid_sec_notif',JSON.stringify(SEC.notif));
-      }catch(e){}
-      ensureSecHist();
-    }catch(e){}
-    restoreSlotUI();
-    hideSyncBar();
-    renderWF();refresh();
-    // Limpiar script tag
-    var old=document.getElementById('_gsScript');
-    if(old)old.remove();
-  };
+
   var sc=document.createElement('script');
   sc.id='_gsScript';
-  sc.src=GS_URL+'?action=load&callback=_gsCallback';
+  sc.src=GS_URL+'?action=load&callback=_gsCallback&t='+Date.now();
   sc.onerror=function(){
     hideSyncBar('Sin conexión al servidor. Usando datos locales.');
     var old=document.getElementById('_gsScript');if(old)old.remove();
