@@ -476,6 +476,7 @@ function processFile(file,tipo,slotId,sec){
       S.rows.forEach(function(r){ex[r.key]=1;});
       nuevos.forEach(function(r){if(ex[r.key])dup++;else{S.rows.push(r);ag++;}});
       S.slotData[slotId]=nuevos;S.slotLoaded[slotId]=true;S.slotSaved[slotId]=false;
+      console.log('[processFile] sec='+sec+' slot='+slotId+' ag='+ag+' S.rows='+S.rows.length+' slotLoaded='+JSON.stringify(S.slotLoaded));
       var lbl=document.getElementById('lbl-'+slotId);if(lbl)lbl.classList.add('loaded');
       var txt=document.getElementById('lbl-'+slotId+'-txt');
       if(txt)txt.textContent=SLOT_BASE[slotId]+(ag?' ('+ag+')':'');
@@ -822,24 +823,26 @@ function ensureFecha(sec,fecha){
   }
 }
 function btnGuardar(sec){sec=sec||'syp';var S=SEC[sec];
-  // Buscar el slot activo: cargado (guardado o no)
+  console.log('[btnGuardar] sec='+sec+' slots='+JSON.stringify(S.slots)+' slotLoaded='+JSON.stringify(S.slotLoaded)+' rows='+S.rows.length);
   var target=null;
   for(var i=0;i<S.slots.length;i++){
     if(S.slotLoaded[S.slots[i]]){target=S.slots[i];break;}
   }
+  console.log('[btnGuardar] target='+target);
   if(!target){toast('No hay reporte cargado para guardar','warn');return;}
   var recs=S.rows.filter(function(r){return r.slot===target;});
+  console.log('[btnGuardar] recs='+recs.length+' rows='+S.rows.length);
   if(!recs.length){toast('El reporte activo no tiene registros','warn');return;}
   var fecha=todayStr();
   var d=new Date();var hora=pad(d.getHours())+':'+pad(d.getMinutes());
   if(!S.hist)S.hist={};
   if(!S.hist[fecha])S.hist[fecha]={fecha:fecha,cerrada:false,hora:'',slots:{}};
-  // Siempre sobreescribe/actualiza el slot en histórico
   S.hist[fecha].slots[target]={
     nombre:SLOT_BASE[target],slot:target,hora:hora,
     n:recs.length,src:recs[0].src,
     recs:recs.map(function(r){return Object.assign({},r);})
   };
+  console.log('[btnGuardar] hist after save='+JSON.stringify(Object.keys(S.hist)));
   S.slotSaved[target]=true;
   lsSave();
   renderWF(sec);renderHist(sec);
@@ -912,6 +915,7 @@ function renderHist(sec){
   if(sec){
     // Render single section
     var fechas=sortedFechas(sec);
+    console.log('[renderHist] sec='+sec+' fechas='+JSON.stringify(fechas)+' hist keys='+JSON.stringify(Object.keys(SEC[sec].hist||{})));
     var cntEl=document.getElementById('hist-count-'+sec);
     if(cntEl)cntEl.textContent=fechas.length+' jornada'+(fechas.length!==1?'s':'');
     var b=document.getElementById('hbody-'+sec);if(!b)return;
