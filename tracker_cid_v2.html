@@ -924,14 +924,15 @@ function renderHist(sec){
 }
 
 function buildFechaCarpeta(fecha,jorn,fi,sec){sec=sec||'syp';
+  var secSlots=SEC[sec]?SEC[sec].slots:['E','N1','N2','N3'];
   var totalRecs=0;
-  ['E','N1','N2','N3'].forEach(function(s){if(jorn.slots[s])totalRecs+=jorn.slots[s].n;});
+  secSlots.forEach(function(s){if(jorn.slots[s])totalRecs+=jorn.slots[s].n;});
   var statusBadge=jorn.cerrada
     ?'<span style="background:#c6f6d5;color:#22543d;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700">✓ Cerrada</span>'
     :'<span style="background:#fefcbf;color:#744210;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700">En curso</span>';
   // subcarpetas
   var subHtml='';
-  ['E','N1','N2','N3'].forEach(function(s,si){
+  secSlots.forEach(function(s,si){
     var rep=jorn.slots[s];
     var sc=SLOT_COLORS_DEF[s];
     if(rep){
@@ -949,8 +950,8 @@ function buildFechaCarpeta(fecha,jorn,fi,sec){sec=sec||'syp';
 
   // totales por slot
   var slotTotals='';
-  ['E','N1','N2','N3'].forEach(function(s){
-    var sc=SLOT_COLORS_DEF[s];
+  secSlots.forEach(function(s){
+    var sc=SLOT_COLORS_DEF[s]||{bg:'#bee3f8',fg:'#2a4a7f'};
     var n=jorn.slots[s]?jorn.slots[s].n:0;
     slotTotals+='<span style="background:'+sc.bg+';color:'+sc.fg+';padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">'+SLOT_SHORT[s]+': '+n+'</span>';
   });
@@ -1381,6 +1382,20 @@ function goSubTab(sec,sub){
   }
   if(sub==='hist')renderHist(sec);
 }
+function syncFromGS(){
+  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP')return;
+  var sc=document.createElement('script');
+  sc.id='_gsSyncScript';
+  sc.src=GS_URL+'?action=load&callback=_gsCallback&t='+Date.now();
+  sc.onerror=function(){var old=document.getElementById('_gsSyncScript');if(old)old.remove();};
+  var old=document.getElementById('_gsSyncScript');if(old)old.remove();
+  document.head.appendChild(sc);
+}
+// Auto-sync every 30 seconds and on tab visibility change
+setInterval(function(){syncFromGS();},30000);
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden)syncFromGS();
+});
 function goTab(name){
   var map={syp:'p-syp',notif:'p-notif',ind:'p-ind'};
   Object.keys(map).forEach(function(k){var p=document.getElementById(map[k]);if(p)p.className='panel'+(k===name?' on':'');});
@@ -1410,6 +1425,8 @@ function lsSave(){
     headers:{'Content-Type':'text/plain'},
     body:JSON.stringify(payload)
   }).catch(function(e){console.warn('GS save error:',e);});
+  // Schedule a sync after 2s to confirm save
+  setTimeout(syncFromGS, 2000);
 }
 
 function lsLoad(){
@@ -1466,6 +1483,7 @@ document.addEventListener('click',function(e){
         localStorage.setItem('tracker_cid_sec_syp',JSON.stringify(SEC.syp));
         localStorage.setItem('tracker_cid_sec_notif',JSON.stringify(SEC.notif));
       }catch(e){}
+      ensureSecHist();
     }catch(e){}
     restoreSlotUI();
     hideSyncBar();
