@@ -191,10 +191,10 @@ tr:hover td{background:#f7faff}
   <div class="up-card">
     <div class="up-title">Cargar reportes</div>
     <div class="uploads">
-      <div><label class="ulbl" id="lbl-E"  ondragover="dragOver(event,'E')"  ondragleave="dragLeave(event,'E')"  ondrop="dropFile(event,'E','T')"><span class="u-icon">📊</span><span class="u-check">✓</span><span id="lbl-E-txt">Escritos</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'T','E')"></label></div>
-      <div><label class="ulbl" id="lbl-N1" ondragover="dragOver(event,'N1')" ondragleave="dragLeave(event,'N1')" ondrop="dropFile(event,'N1','N')"><span class="u-icon">📬</span><span class="u-check">✓</span><span id="lbl-N1-txt">Notificaciones 1</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'N','N1')"></label></div>
-      <div><label class="ulbl" id="lbl-N2" ondragover="dragOver(event,'N2')" ondragleave="dragLeave(event,'N2')" ondrop="dropFile(event,'N2','N')"><span class="u-icon">📬</span><span class="u-check">✓</span><span id="lbl-N2-txt">Notificaciones 2</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'N','N2')"></label></div>
-      <div><label class="ulbl" id="lbl-N3" ondragover="dragOver(event,'N3')" ondragleave="dragLeave(event,'N3')" ondrop="dropFile(event,'N3','N')"><span class="u-icon">📬</span><span class="u-check">✓</span><span id="lbl-N3-txt">Notificaciones 3</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'N','N3')"></label></div>
+      <div><label class="ulbl" id="lbl-E"  ondragover="dragOver(event,'E')"  ondragleave="dragLeave(event,'E')"  ondrop="dropFile(event,'E','T','syp')"><span class="u-icon">📊</span><span class="u-check">✓</span><span id="lbl-E-txt">Escritos</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'T','E','syp')"></label></div>
+      <div><label class="ulbl" id="lbl-N1" ondragover="dragOver(event,'N1')" ondragleave="dragLeave(event,'N1')" ondrop="dropFile(event,'N1','N','syp')"><span class="u-icon">📬</span><span class="u-check">✓</span><span id="lbl-N1-txt">Notificaciones 1</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'N','N1','syp')"></label></div>
+      <div><label class="ulbl" id="lbl-N2" ondragover="dragOver(event,'N2')" ondragleave="dragLeave(event,'N2')" ondrop="dropFile(event,'N2','N','syp')"><span class="u-icon">📬</span><span class="u-check">✓</span><span id="lbl-N2-txt">Notificaciones 2</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'N','N2','syp')"></label></div>
+      <div><label class="ulbl" id="lbl-N3" ondragover="dragOver(event,'N3')" ondragleave="dragLeave(event,'N3')" ondrop="dropFile(event,'N3','N','syp')"><span class="u-icon">📬</span><span class="u-check">✓</span><span id="lbl-N3-txt">Notificaciones 3</span><input type="file" accept=".xlsx,.xls" onchange="loadFile(event,'N','N3','syp')"></label></div>
     </div>
     <div class="wf-wrap" id="wfbar-syp"></div>
   </div>
@@ -843,7 +843,7 @@ function btnGuardar(sec){sec=sec||'syp';var S=SEC[sec];
   S.slotSaved[target]=true;
   lsSave();
   renderWF(sec);renderHist(sec);
-  toast('💾 "'+SLOT_BASE[target]+'" actualizado en '+fecha+' — '+recs.length+' registros');
+  toast('💾 ['+sec.toUpperCase()+'] "'+SLOT_BASE[target]+'" guardado — '+recs.length+' registros');
 }
 
 function btnCerrar(sec){
