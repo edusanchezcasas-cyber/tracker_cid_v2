@@ -1014,21 +1014,17 @@ function updateIndKPIsOnly(){
   }
 }
 function syncAvanceRows(){
-  // Use getNotifRows() so it works both with active rows AND avance rows
+  // Just recalculate counts - no expensive serialization
   var rows=getNotifRows();
   if(!rows.length)return;
-  if(!SEC.notif._avance)SEC.notif._avance={fecha:todayStr(),fechaNotif:'',hora:'',pct:0,valOk:0,total:0,rows:[],slotLoaded:{},slotData:{}};
-  // Always snapshot current state (getNotifRows returns reference to avance.rows when active empty)
-  // So we just recalculate counts - no need to re-snapshot since findR already updated in-place
+  if(!SEC.notif._avance)SEC.notif._avance={fecha:todayStr(),fechaNotif:'',hora:'',pct:0,valOk:0,total:0,rows:SEC.notif.rows,slotLoaded:{},slotData:{}};
   var av=SEC.notif._avance;
+  // Keep av.rows pointing to the live array (no copy needed - findR updates in-place)
+  if(SEC.notif.rows.length>0)av.rows=SEC.notif.rows;
   av.total=rows.length;
   av.valOk=rows.filter(function(r){return r.val_ok;}).length;
   av.pct=av.total?Math.round(av.valOk/av.total*100):0;
   if(!av.fechaNotif&&rows[0])av.fechaNotif=rows[0].fc2||'';
-  // If active rows exist, keep snapshot in sync
-  if(SEC.notif.rows.length>0){
-    av.rows=JSON.parse(JSON.stringify(SEC.notif.rows));
-  }
 }
 var _paintBlocked=false;
 var _paintPending={};
@@ -3733,9 +3729,11 @@ function chV50Ok(cb){
   var r=findR(cb.dataset.k);if(!r)return;
   var f=cb.dataset.f50;
   if(f)r[f]=cb.checked;
-  syncAvanceRows(); // sync snapshot AFTER updating the field
-  try{localStorage.setItem('tracker_cid_sec_notif',JSON.stringify(SEC.notif));}catch(e){}
-  pushRowToGS(r);
+  syncAvanceRows();
+  setTimeout(function(){
+    try{localStorage.setItem('tracker_cid_sec_notif',JSON.stringify(SEC.notif));}catch(e){}
+    pushRowToGS(r);
+  },0);
   checkSaveReady('notif');
   updateAvancePill();
   updateIndKPIsOnly();
