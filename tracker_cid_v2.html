@@ -520,6 +520,11 @@ tr:hover td{background:#f7faff}
 
 
 <script>
+// Disable GS sync when running as local file
+if(window.location.protocol==='file:'){
+  console.log('Running as local file - GS sync disabled');
+}
+var GS_ENABLED = window.location.protocol !== 'file:';
 var CURRENT_USER = localStorage.getItem('tracker_cid_user') || '';
 var rows=[];
 // hist: { "DD/MM/YYYY": { fecha, cerrada, hora, slots: { E:{n,recs}, N1:{n,recs}, N2:{n,recs}, N3:{n,recs} } } }
@@ -1226,7 +1231,7 @@ function chVal(sel){
 var _lsTimer=null;
 function debounceSave(){clearTimeout(_lsTimer);_lsTimer=setTimeout(lsSave,1500);}
 function pushRowToGS(r){
-  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP'||!r||window.location.protocol==='file:')return;
+  if(!GS_ENABLED||!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP'||!r)return;
   var sec=r.section||'syp';
   var payload={action:'save'};
   payload['sec_'+sec]=SEC[sec];
@@ -2974,7 +2979,7 @@ function chVal(sel){
 var _lsTimer=null;
 function debounceSave(){clearTimeout(_lsTimer);_lsTimer=setTimeout(lsSave,1500);}
 function pushRowToGS(r){
-  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP'||!r||window.location.protocol==='file:')return;
+  if(!GS_ENABLED||!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP'||!r)return;
   var sec=r.section||'syp';
   var payload={action:'save'};
   payload['sec_'+sec]=SEC[sec];
@@ -3621,9 +3626,9 @@ function updateAvancePill(){
   if(!pill)return;
   if(av&&av.total>0){
     pill.style.display='flex';
-    var rows=av.rows||[];
-    // Use current active rows if available for live stats
-    var liveRows=SEC.notif.rows.length>0?SEC.notif.rows:rows;
+    // Always use getNotifRows() for live accurate count
+    var liveRows=getNotifRows();
+    if(!liveRows.length)liveRows=av.rows||[];
     var total=liveRows.length||av.total;
     var valOk=liveRows.filter(function(r){return r.val_ok;}).length;
     var joseOk=liveRows.filter(function(r){return r.val50==='Jose Gutierrez'&&r.jose_ok;}).length;
@@ -3876,7 +3881,7 @@ function goSubTab(sec,sub){
   if(sub==='hist')renderHist(sec);
 }
 function syncFromGS(){
-  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP'||window.location.protocol==='file:')return;
+  if(!GS_ENABLED||!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP')return;
   var sc=document.createElement('script');
   sc.id='_gsSyncScript';
   sc.src=GS_URL+'?action=load&callback=_gsCallback&t='+Date.now();
@@ -3966,7 +3971,7 @@ function lsSave(){
     localStorage.setItem('tracker_cid_sec_notif', JSON.stringify(SEC.notif));
     localStorage.setItem('tracker_cid_sec_sup', JSON.stringify(SEC.sup));
   }catch(e){}
-  if(!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP'||window.location.protocol==='file:')return;
+  if(!GS_ENABLED||!GS_URL||GS_URL==='REEMPLAZAR_CON_URL_DEL_WEB_APP')return;
   // Enviar a Google Sheets via no-cors (Apps Script acepta POST sin preflight)
   SEC.syp._savedAt=Date.now();SEC.notif._savedAt=Date.now();SEC.sup._savedAt=Date.now();
   var payload={action:'save',sec_syp:SEC.syp,sec_notif:SEC.notif,sec_sup:SEC.sup};
